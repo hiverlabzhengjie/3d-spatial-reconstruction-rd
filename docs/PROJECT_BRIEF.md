@@ -148,6 +148,12 @@ DA3 vendor checkout remain local and are referenced through manifests,
 fingerprints, model revisions, and reproduction records instead of being
 committed.
 
+The public remote is
+`https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`. Each
+stage-close commit and optional tag is pushed and verified there. Public
+visibility does not relax the project's local-processing, data-protection, or
+licence constraints.
+
 ## Non-Commercial Research Constraint
 
 This prototype is for non-commercial research. Model and library licences must

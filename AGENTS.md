@@ -137,6 +137,8 @@ Minimum recurring tests include:
 
 - Use the project-root Git repository as the durable software and research
   history.
+- Public GitHub remote:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`.
 - Keep raw captures, model weights, generated artifacts, virtual environments,
   caches, and the unmodified DA3 vendor checkout out of Git.
 - Record vendor source identity and a reproducible fingerprint in
@@ -149,6 +151,13 @@ Minimum recurring tests include:
 - Add an annotated stage tag when it improves experiment provenance, using a
   lowercase name such as `stage-03-da3-geometry`.
 - Record the stage-close commit hash and optional tag in the stage handoff.
+- Push each completed stage's commit to `origin/main`. Push any stage tag
+  explicitly, then verify that GitHub resolves both to the intended commit.
+- Never push credentials, private capture data, personal notes, local machine
+  caches, or unpublished model outputs to the public remote.
+- Direct stage-close pushes to `main` are the streamlined single-operator
+  workflow. If multiple engineers begin making concurrent changes, introduce
+  short-lived branches and pull requests through an explicit decision.
 - Keep unrelated changes out of a stage-close commit.
 
 ## Stage Close Requirements
@@ -164,4 +173,6 @@ Before marking a stage complete:
 7. State physical and software prerequisites for the next stage.
 8. Create the descriptive stage-close commit.
 9. Optionally create an annotated stage tag and record it in the handoff.
-10. Stop; do not begin the next stage unless explicitly requested.
+10. Push the stage-close commit to `origin/main` and push the optional tag.
+11. Verify the remote branch/tag and record the GitHub URL in the handoff.
+12. Stop; do not begin the next stage unless explicitly requested.

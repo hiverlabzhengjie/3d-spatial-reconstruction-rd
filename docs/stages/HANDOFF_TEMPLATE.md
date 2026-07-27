@@ -78,8 +78,11 @@ Exact commands used to reproduce tests and smoke checks
 
 ## Version Control
 
+- GitHub repository:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
 - Stage-close commit: `<full commit hash>`
 - Annotated tag: `<tag or None>`
+- Remote push verified: `Yes / No`
 - Vendor/model revisions used by generated experiments
 
 ## Exact Next Action

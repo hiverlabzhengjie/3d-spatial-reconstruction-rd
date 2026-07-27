@@ -4,6 +4,9 @@ Exploratory, DA3-centred prototype for converting two synchronized,
 overlapping living-room recordings into a metric 3D scene, person and backpack
 tracks, pickup-carry-place events, and a synchronized Rerun recording.
 
+Public repository:
+https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd
+
 The canonical project scope and current stage are documented in
 `docs/PROJECT_BRIEF.md`, `docs/ROADMAP.md`, and `docs/STATUS.md`.
 
@@ -37,4 +40,5 @@ the unmodified DA3 checkout remain local. See
 `docs/VENDOR_DEPENDENCIES.md` for the vendor fingerprint.
 
 Each completed stage receives a descriptive stage-close commit. Annotated tags
-may identify important reproducible stage or experiment checkpoints.
+may identify important reproducible stage or experiment checkpoints. Stage
+commits and tags are pushed to the public `origin` remote after verification.

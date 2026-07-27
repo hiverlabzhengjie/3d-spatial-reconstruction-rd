@@ -26,3 +26,15 @@ stage(S03): complete person and backpack perception
 Optionally add an annotated lowercase tag such as
 `stage-03-person-backpack-perception`. Record the commit hash and tag in the
 handoff. Do not create either before the stage is genuinely complete.
+
+Push and verify the completed stage:
+
+```text
+git push origin main
+git push origin <stage-tag>  # when a tag was created
+git ls-remote origin main refs/tags/<stage-tag>
+```
+
+The remote is public. Review the staged diff and ignored files before every
+push; raw captures, credentials, weights, artifacts, caches, and vendor source
+must remain local.

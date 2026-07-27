@@ -40,6 +40,9 @@
   - recorded exact results in `docs/stages/S00_WP2_CONTRACTS.md`.
 - Initialized project-level Git history under D016 with an initial
   research-plan checkpoint and vendor-source fingerprint.
+- Created the public GitHub repository
+  `hiverlabzhengjie/3d-spatial-reconstruction-rd`, configured it as `origin`,
+  and adopted D017 for verified stage-close pushes.
 
 ## Current Blockers and Unknowns
 

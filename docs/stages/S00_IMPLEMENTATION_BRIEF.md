@@ -643,7 +643,9 @@ Only after every completion-gate item has been reviewed:
 8. Create the descriptive S00 stage-close commit and record its hash in the
    handoff.
 9. Optionally create and record an annotated S00 tag.
-10. Stop. Do not start S01 without an explicit request.
+10. Push the commit to `origin/main`, push the optional tag, and verify both on
+    the public GitHub remote.
+11. Stop. Do not start S01 without an explicit request.
 
 This implementation brief is not a completion handoff, and its creation does
 not change `docs/STATUS.md`.

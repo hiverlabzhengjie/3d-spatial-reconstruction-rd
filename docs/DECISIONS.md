@@ -184,3 +184,20 @@ environments, caches, or the unmodified DA3 vendor checkout. Record those
 inputs through capture manifests, exact model revisions, artifact records, and
 vendor fingerprints. Each stage handoff records its close commit and optional
 tag.
+
+## D017 - Public GitHub remote and stage publishing
+
+**Date:** 2026-07-27
+**Status:** Active
+
+Use `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd` as the
+public `origin` remote. After a stage passes its gate and its handoff is
+complete, push the dedicated stage-close commit to `origin/main`, push any
+annotated stage tag explicitly, and verify the remote commit/tag before
+stopping.
+
+The current streamlined workflow allows direct stage-close pushes to `main`
+for the single operator. If concurrent engineering begins, adopt short-lived
+branches, reviews, and pull requests through a later explicit decision. Public
+GitHub history must never contain raw captures, credentials, private notes,
+model weights, generated artifacts, local caches, or the DA3 vendor snapshot.
