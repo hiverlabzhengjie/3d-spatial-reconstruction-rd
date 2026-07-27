@@ -1,0 +1,26 @@
+config_version: 1
+
+paths:
+  da3_vendor_dir: Depth-Anything-3-main
+  artifacts_dir: artifacts
+
+models:
+  da3: depth-anything/DA3NESTED-GIANT-LARGE-1.1
+  yolo: yolov8n-seg.pt
+  qwen: Qwen/Qwen3-VL-2B-Instruct
+
+runtime:
+  preferred_device: mps
+  precision: auto
+  allow_cpu_fallback: false
+
+da3:
+  process_resolutions: [336, 420, 504]
+  keyframe_interval_candidates_seconds: [1.0, 2.0, 5.0]
+
+perception:
+  detection_confidence_threshold: 0.25
+  target_classes: [person, backpack]
+
+outputs:
+  preserve_raw_model_outputs: true

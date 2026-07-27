@@ -1,0 +1,21 @@
+.DS_Store
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.py[cod]
+
+# Local model caches and generated outputs
+.cache/
+artifacts/
+*.rrd
+*.pt
+*.pth
+*.safetensors
+
+# Unmodified vendor source is restored separately and fingerprinted in docs
+Depth-Anything-3-main/
+
+# Raw captures are local inputs and must not be committed
+data/raw/
