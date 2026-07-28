@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 PositiveFloat = Annotated[float, Field(gt=0, allow_inf_nan=False)]
+PositiveInt = Annotated[int, Field(gt=0)]
 Confidence = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +100,7 @@ class PerceptionConfig(ConfigModel):
     """Baseline detector configuration."""
 
     detection_confidence_threshold: Confidence = 0.25
+    inference_image_size: PositiveInt = 640
     target_classes: tuple[str, ...] = ("person", "backpack")
 
     @field_validator("target_classes")
@@ -110,6 +112,13 @@ class PerceptionConfig(ConfigModel):
         if len(set(normalized)) != len(normalized):
             raise ValueError("target classes must be unique")
         return normalized
+
+
+class QwenConfig(ConfigModel):
+    """Bounded Qwen3-VL smoke-test settings."""
+
+    smoke_frame_count: Annotated[int, Field(ge=4, le=8)] = 4
+    max_new_tokens: Annotated[int, Field(ge=1, le=256)] = 64
 
 
 class OutputConfig(ConfigModel):
@@ -127,6 +136,7 @@ class ProjectConfig(ConfigModel):
     runtime: RuntimeConfig
     da3: DA3Config
     perception: PerceptionConfig
+    qwen: QwenConfig
     outputs: OutputConfig
 
     @model_validator(mode="after")

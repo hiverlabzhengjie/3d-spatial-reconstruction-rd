@@ -20,6 +20,9 @@ def test_default_config_loads_with_exact_baseline_models() -> None:
     assert config.paths.da3_vendor_dir.is_absolute()
     assert config.paths.da3_vendor_dir.name == "Depth-Anything-3-main"
     assert config.da3.process_resolutions == (336, 420, 504)
+    assert config.perception.inference_image_size == 640
+    assert config.qwen.smoke_frame_count == 4
+    assert config.qwen.max_new_tokens == 64
 
 
 def test_config_round_trips_through_json() -> None:

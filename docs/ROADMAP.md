@@ -138,7 +138,9 @@ depth only.
 **Inputs**
 
 - YOLO masks and tracklets
-- DA3 metric depth and confidence
+- DA3 metric depth and confidence from synchronized action frames containing
+  the dynamic entities; empty-room/static-reconstruction depth is not a valid
+  substitute
 - Camera intrinsics and poses
 - Room bounds and zones
 
@@ -146,17 +148,49 @@ depth only.
 
 - Raw per-camera person/backpack XYZ observations
 - Robust mask-to-XYZ aggregation
+- Explicit depth-frame identity, timestamp, and freshness provenance
 - Cross-camera confidence-weighted fused observations
 - Missing, occluded, and stale-position states
 - Raw and presentation trajectories
-- Diagnostics for invalid depth and cross-camera disagreement
+- Diagnostics for invalid/stale depth, foreground-versus-static-surface
+  conflicts, and cross-camera disagreement
 
 **Completion gate**
 
 - Person and backpack locations are qualitatively plausible in the 3D scene.
 - The backpack moves from the pickup side toward the drop-off side.
+- A foreground person/object cannot be localized by silently reusing the
+  empty-room depth at the same pixel.
+- Two-camera fusion uses only temporally compatible, valid dynamic
+  observations; overlap is treated as redundancy, not as a correction for
+  stale static depth.
 - Missing observations do not generate fabricated XYZ positions.
 - Coordinate and back-projection tests pass.
+
+**Required localization considerations**
+
+- A pixel defines a ray, not a unique XYZ. Back-projection must use depth
+  belonging to the detected action-frame content.
+- Include a controlled test in which a synthetic foreground entity occludes a
+  farther static surface; the returned XYZ must follow the foreground depth,
+  and deliberately stale/static depth must be rejected or flagged.
+- Define the spatial anchor represented by each track. An in-mask depth
+  aggregate estimates visible surface location; it is not automatically the
+  person's anatomical centre. Evaluate a robust lower-body/ground-contact
+  anchor for the person and a robust in-mask cluster/aggregate for the
+  backpack.
+- Elevated, downward-looking cameras should be exploited for floor visibility
+  and ground-contact reasoning, while retaining failure handling for hidden
+  feet, furniture occlusion, person-backpack occlusion, and steep viewing
+  angles.
+- If DA3 is evaluated only on action keyframes, detections between those
+  keyframes must not inherit an old depth as a new raw measurement. Mark the
+  XYZ unavailable/stale or keep any explicitly modelled temporal estimate
+  separate from raw observations.
+- A second camera can supply an independent current observation or expose
+  disagreement. If both views lack valid current depth, do not intersect the
+  detection rays with the static point cloud and report the result as the
+  entity's measured position.
 
 ## S05 - Interaction State and Qwen Events
 

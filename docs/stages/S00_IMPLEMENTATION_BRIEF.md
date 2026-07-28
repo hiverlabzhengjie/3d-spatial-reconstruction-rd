@@ -504,7 +504,7 @@ tracking, fusion, state-machine, event, or Rerun schemas during S00.
    numerical values.
 9. Verify a missing camera fails with a typed error or explicit unavailable
    result.
-10. Verify a missing/occluded object contains no XYZ, while stale presentation
+10. Verify a missing/occluded object contains no XYZ, while tpresentation
     state remains distinguishable from a raw observation.
 11. Verify persistent contract validation rejects ambiguous fields named only
     `extrinsics`.
@@ -513,41 +513,41 @@ tracking, fusion, state-machine, event, or Rerun schemas during S00.
 
 ### Gate A - DA3 two-view inference runs or has a documented MPS workaround
 
-- [ ] Exact `DA3NESTED-GIANT-LARGE-1.1` identity/revision recorded.
-- [ ] Two views, intrinsics, and explicit OpenCV
+- [x] Exact `DA3NESTED-GIANT-LARGE-1.1` identity/revision recorded.
+- [x] Two views, intrinsics, and explicit OpenCV
       `T_camera_from_world` inputs recorded.
-- [ ] Metric-depth and confidence output assertions pass.
-- [ ] MPS device, precision, cold/warm timing, and memory are recorded.
-- [ ] Any compatibility workaround is project-owned, reproducible, and leaves
+- [x] Metric-depth and confidence output assertions pass.
+- [x] MPS device, precision, cold/warm timing, and memory are recorded.
+- [x] Any compatibility workaround is project-owned, reproducible, and leaves
       vendor files unchanged.
-- [ ] Resolution and provisional keyframe recommendations cite measured runs.
+- [x] Resolution and provisional keyframe recommendations cite measured runs.
 
 ### Gate B - YOLOv8n-seg runs on a representative image
 
-- [ ] User supplies or identifies one representative living-room image.
-- [ ] Exact `yolov8n-seg.pt` identity/revision recorded.
-- [ ] MPS inference and output-structure assertions pass on that image.
-- [ ] Annotated preview, normalized output, timing, and memory summary exist.
-- [ ] Zero detections, missed backpack, and invalid result handling are
+- [x] User supplies or identifies one representative living-room image.
+- [x] Exact `yolov8n-seg.pt` identity/revision recorded.
+- [x] MPS inference and output-structure assertions pass on that image.
+- [x] Annotated preview, normalized output, timing, and memory summary exist.
+- [x] Zero detections, missed backpack, and invalid result handling are
       represented honestly.
 
 ### Gate C - Qwen3-VL-2B accepts a small multi-frame input and returns text
 
-- [ ] Exact `Qwen/Qwen3-VL-2B-Instruct` identity/revision recorded; no
+- [x] Exact `Qwen/Qwen3-VL-2B-Instruct` identity/revision recorded; no
       prior-generation dependency or identifier is present.
-- [ ] More than one temporally ordered frame is accepted.
-- [ ] Non-empty bounded text is returned and saved.
-- [ ] Timing, memory, input count, and fallback state are recorded.
-- [ ] The adapter cannot write geometry, identity, timestamps, or zones.
+- [x] More than one temporally ordered frame is accepted.
+- [x] Non-empty bounded text is returned and saved.
+- [x] Timing, memory, input count, and fallback state are recorded.
+- [x] The adapter cannot write geometry, identity, timestamps, or zones.
 
 ### Gate D - The project test command runs successfully
 
-- [ ] One exact documented command runs all non-heavy automated tests.
-- [ ] Schema, transform, projection/back-projection, invalid-data, missing
+- [x] One exact documented command runs all non-heavy automated tests.
+- [x] Schema, transform, projection/back-projection, invalid-data, missing
       camera/object, and serialization tests pass.
-- [ ] Independent heavy smoke commands are documented separately and their
+- [x] Independent heavy smoke commands are documented separately and their
       results are recorded.
-- [ ] A fresh environment can reproduce the commands from the lockfile and
+- [x] A fresh environment can reproduce the commands from the lockfile and
       locally available model weights/inputs.
 
 The stage is not complete if Gate B lacks a representative living-room image,
@@ -652,6 +652,6 @@ not change `docs/STATUS.md`.
 
 ## 15. Exact Next Action for the Later Implementation Turn
 
-WP1 and WP2 are complete. Begin WP3 by implementing explicit transform
-inversion, point transformation, OpenCV projection, and depth
-back-projection with the deterministic synthetic tests defined in Section 9.
+S00 is complete. After explicit user approval to begin S01, inventory the two
+phone/lens configurations and confirm rigid mounts plus the printed ChArUco
+board's exact dimensions before recording any calibration session.

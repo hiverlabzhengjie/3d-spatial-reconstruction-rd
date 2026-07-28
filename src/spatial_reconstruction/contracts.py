@@ -278,8 +278,10 @@ class MemoryObservation(ContractModel):
 
     phase: str
     process_rss_bytes: NonNegativeInt
+    process_peak_rss_bytes: NonNegativeInt | None = None
     mps_allocated_bytes: NonNegativeInt | None = None
     mps_driver_allocated_bytes: NonNegativeInt | None = None
+    mps_recommended_max_bytes: NonNegativeInt | None = None
 
     @field_validator("phase")
     @classmethod
@@ -288,6 +290,15 @@ class MemoryObservation(ContractModel):
         if not normalized:
             raise ValueError("memory phase must not be empty")
         return normalized
+
+    @model_validator(mode="after")
+    def validate_peak_rss(self) -> Self:
+        if (
+            self.process_peak_rss_bytes is not None
+            and self.process_peak_rss_bytes < self.process_rss_bytes
+        ):
+            raise ValueError("peak process RSS cannot be below the phase RSS")
+        return self
 
 
 class RunOutcome(StrEnum):
@@ -302,7 +313,9 @@ class ModelRunObservation(ContractModel):
 
     model_id: str
     model_revision: str | None = None
-    device: Literal["mps", "cpu", "cuda"]
+    requested_device: Literal["mps", "cpu", "cuda"]
+    device: Literal["mps", "cpu", "cuda"] | None
+    device_selection_error: str | None = None
     precision: Literal["float32", "float16", "bfloat16", "mixed", "unknown"]
     input_description: str
     timings: tuple[TimingObservation, ...]
@@ -320,6 +333,16 @@ class ModelRunObservation(ContractModel):
             raise ValueError("model run text fields must not be empty")
         return normalized
 
+    @field_validator("device_selection_error")
+    @classmethod
+    def validate_optional_device_error(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("device_selection_error must not be blank")
+        return normalized
+
     @model_validator(mode="after")
     def validate_measurements(self) -> Self:
         timing_phases = [item.phase for item in self.timings]
@@ -328,4 +351,13 @@ class ModelRunObservation(ContractModel):
             raise ValueError("timing phases must be unique")
         if len(set(memory_phases)) != len(memory_phases):
             raise ValueError("memory phases must be unique")
+        if self.device is None:
+            if self.outcome is not RunOutcome.FAILED or self.device_selection_error is None:
+                raise ValueError(
+                    "an unavailable device requires a failed outcome and selection error"
+                )
+        elif self.device_selection_error is not None:
+            raise ValueError("a selected device cannot carry a device selection error")
+        if self.outcome is RunOutcome.PASSED and self.device is None:
+            raise ValueError("a passed run requires an actual device")
         return self

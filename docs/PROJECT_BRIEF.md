@@ -73,6 +73,47 @@ Static room point cloud       Per-camera depth/confidence
                  Rerun video/3D/event timeline recording
 ```
 
+## Static Scene Versus Dynamic-Object Depth
+
+A 2D detection does not by itself identify a 3D point. A pixel identifies a
+camera ray; the depth selected along that ray determines the resulting XYZ.
+Consequently, the empty-room/static reconstruction must not be used as the
+depth lookup for a person or backpack detected later. If a person stands
+between a camera and a table edge, reusing the static depth at that pixel would
+incorrectly place the observation on the table.
+
+Dynamic localization therefore uses:
+
+1. a segmentation mask from the current action frame;
+2. DA3 depth and confidence associated with that same camera and action-frame
+   time, or with an explicitly bounded and recorded synchronization tolerance;
+3. robust aggregation of valid depth samples inside the dynamic mask;
+4. the calibrated camera transform to place the observation in the shared
+   world frame; and
+5. cross-camera validation and confidence-weighted fusion using only current,
+   valid observations.
+
+The static point cloud remains valuable as room context, a source of bounds and
+zones, and a plausibility/occlusion reference. It is not evidence for the
+current range of a foreground entity. Two-camera overlap improves visibility,
+redundancy, and disagreement detection, but it does not make stale static depth
+valid. If neither camera has current valid dynamic depth, the observation must
+be missing, occluded, or stale rather than placed on the background surface.
+
+Elevated, downward-looking CCTV viewpoints are helpful: they often preserve a
+view of the floor around a person, reduce some furniture occlusions, and make a
+person's lower-body or ground-contact region easier to interpret. This reduces
+the frequency and severity of the problem but does not remove the underlying
+ray-depth ambiguity. Feet may still be hidden, the person may occlude the
+backpack, and a dynamic foreground pixel still cannot inherit its empty-room
+depth.
+
+DA3 may run on offline action-frame keyframes rather than at the detector's
+full frame rate. A real-time 2D detection is therefore not automatically a
+real-time measured XYZ observation. Depth-frame identity, timestamp, and
+freshness must be retained. Any later temporal propagation is presentation or
+inference state and must remain separate from raw measured XYZ.
+
 ## Meaning of Success
 
 Success is a coherent and reproducible exploratory demonstration, not a formal

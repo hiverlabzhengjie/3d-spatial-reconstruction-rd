@@ -201,3 +201,91 @@ for the single operator. If concurrent engineering begins, adopt short-lived
 branches, reviews, and pull requests through a later explicit decision. Public
 GitHub history must never contain raw captures, credentials, private notes,
 model weights, generated artifacts, local caches, or the DA3 vendor snapshot.
+
+## D018 - Dynamic localization requires action-frame depth
+
+**Date:** 2026-07-27
+**Status:** Active
+
+A 2D pixel identifies a camera ray and becomes a unique camera-space point only
+when paired with a depth. The empty-room/static reconstruction records the
+background surface along that ray. It must not be reused as the depth source
+for a person, backpack, or other dynamic foreground entity detected in a later
+action frame.
+
+S04 dynamic XYZ observations must use DA3 depth and confidence associated with
+the same camera and synchronized action-frame content as the segmentation mask,
+subject only to an explicit, tested, and recorded temporal tolerance. Each raw
+observation must retain depth-frame identity, timestamp, and freshness
+provenance. If the required current depth is unavailable, invalid, or too old,
+the raw XYZ is unavailable; the system must emit a missing, occluded, or stale
+state rather than back-project against empty-room geometry.
+
+Two overlapping cameras provide independent current observations, better
+visibility, confidence fusion, and disagreement checks. They do not
+automatically correct a stale/static depth lookup. Fusion may use only
+temporally compatible observations that independently pass depth and
+confidence checks. If both cameras lack valid current depth, no precise XYZ may
+be fabricated by intersecting the rays with the static scene.
+
+The static reconstruction may still provide visualization context, room
+bounds, zones, and conservative plausibility or occlusion checks. Those checks
+must not overwrite the dynamic depth measurement. A conflict such as a dynamic
+observation appearing behind a known opaque surface is diagnostic evidence to
+reject, down-weight, or investigate the observation, not permission to snap it
+to that surface.
+
+Elevated, downward-looking CCTV placement is beneficial and should be used
+deliberately during S01 capture planning. It can improve floor visibility,
+reduce some furniture occlusions, and make lower-body or ground-contact
+localization more observable. It reduces risk but does not resolve the
+ray-depth ambiguity: feet can remain hidden, the person can occlude the
+backpack, and visible mask pixels still require current depth.
+
+The spatial meaning of the reported XYZ must also be explicit. Back-projecting
+an in-mask pixel estimates a visible surface point, not automatically a person
+centre. S04 must evaluate robust mask-depth aggregation and define suitable
+anchors, such as a lower-body/ground-contact estimate for a person and a robust
+in-mask depth cluster for a backpack. Raw surface measurements, derived track
+anchors, and smoothed/inferred presentation positions must remain
+distinguishable.
+
+DA3 may run on offline action keyframes rather than every detector frame.
+Real-time 2D detection therefore does not imply a current measured 3D
+observation. Reusing keyframe depth after a dynamic entity has moved is
+forbidden as a raw measurement. Any later temporal propagation must be
+explicitly modelled, labelled as inferred or stale as appropriate, and kept
+separate from raw XYZ.
+
+Before the S04 completion gate passes, tests and diagnostics must cover:
+
+1. a foreground entity occluding a farther static surface;
+2. rejection or explicit flagging of mismatched and stale depth frames;
+3. valid single-camera operation when the other view is unavailable;
+4. cross-camera disagreement and both-camera failure;
+5. hidden feet and person-backpack occlusion; and
+6. preservation of raw, derived-anchor, and presentation-state provenance.
+
+## D019 - Two-view DA3 post-alignment stays in the project adapter
+
+**Date:** 2026-07-28
+**Status:** Active
+
+The DA3 vendor API applies Umeyama Sim(3) alignment after inference whenever
+camera poses are supplied. Exactly two camera centres are geometrically
+insufficient to determine a full Sim(3), so the vendor post-processing raises
+a degenerate-covariance error even though its pose-conditioned MPS forward pass
+has completed successfully.
+
+For exactly two supplied views, the project-owned DA3 adapter bypasses only
+that post-inference Umeyama step. It preserves the nested model's already
+metric-scaled depth and returns the supplied, preprocessed OpenCV intrinsics and
+`T_camera_from_world` poses. It rejects this path if the model output is not
+metric. Runs with another view count continue to delegate to the vendor
+alignment implementation.
+
+This is a bounded API compatibility path, not a new reconstruction method and
+not a metric-accuracy claim. S00 uses synthetic cameras only to verify the
+pose-conditioned interface and MPS execution. S01 and S02 must use calibrated
+cameras and physical scene evidence before making geometric claims. The vendor
+source remains unmodified.

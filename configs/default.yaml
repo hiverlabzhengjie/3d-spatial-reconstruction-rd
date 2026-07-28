@@ -20,7 +20,12 @@ da3:
 
 perception:
   detection_confidence_threshold: 0.25
+  inference_image_size: 640
   target_classes: [person, backpack]
+
+qwen:
+  smoke_frame_count: 4
+  max_new_tokens: 64
 
 outputs:
   preserve_raw_model_outputs: true

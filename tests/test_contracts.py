@@ -252,6 +252,7 @@ def test_stale_observation_has_timestamp_but_no_raw_xyz() -> None:
 def test_model_run_observation_round_trip_and_unique_phases() -> None:
     run = ModelRunObservation(
         model_id="yolov8n-seg.pt",
+        requested_device="mps",
         device="mps",
         precision="float32",
         input_description="one representative image",
@@ -265,6 +266,7 @@ def test_model_run_observation_round_trip_and_unique_phases() -> None:
     with pytest.raises(ValidationError, match="timing phases must be unique"):
         ModelRunObservation(
             model_id="yolov8n-seg.pt",
+            requested_device="mps",
             device="mps",
             precision="float32",
             input_description="one representative image",
