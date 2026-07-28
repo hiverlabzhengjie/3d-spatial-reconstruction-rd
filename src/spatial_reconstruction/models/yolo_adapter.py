@@ -32,6 +32,8 @@ class YOLOValidationError(ValueError):
 
 
 class _YOLOModel(Protocol):
+    """Minimal Ultralytics segmentation interface required by the adapter."""
+
     task: str
     ckpt_path: str
     model: object

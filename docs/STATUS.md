@@ -109,6 +109,15 @@
   - confirmed the public stage-close scope excludes raw inputs, vendor source,
     model weights, caches, environments, and generated artifacts;
   - recorded exact evidence in `docs/stages/S00_WP8_VERIFICATION.md`.
+- Adopted D020 after S00 close:
+  - DA3, YOLO/ByteTrack, and Qwen will be independent timestamped workers
+    operating at different rates;
+  - the single-M1 default will serialize heavy MPS inference while allowing
+    CPU pipeline work to continue;
+  - deterministic offline batching and future freshness-oriented live
+    scheduling will share bounded queues and the same provenance contracts;
+  - implementation is assigned incrementally to S01 and S03-S07 without
+    reopening S00.
 
 ## Current Blockers and Unknowns
 

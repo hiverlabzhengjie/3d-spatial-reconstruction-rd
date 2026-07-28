@@ -58,6 +58,8 @@ world frame.
 
 - Raw capture-session structure and capture notes
 - File and RTSP frame-source interfaces
+- Immutable synchronized frame bundles with capture-session, camera, frame,
+  capture-time, and synchronization provenance suitable for worker jobs
 - Synchronization manifest with offset/drift correction
 - Intrinsic calibration JSON for each phone
 - Fixed camera poses
@@ -67,6 +69,8 @@ world frame.
 **Completion gate**
 
 - A synchronized frame-pair preview is visually correct.
+- Replaying the same inputs produces the same frame-bundle identities and
+  ordering, independent of downstream worker completion order.
 - Marker reprojections align plausibly in both cameras.
 - Camera frustums point into the room in the declared world frame.
 - No camera has moved since the fixed-pose calibration.
@@ -116,6 +120,8 @@ Detect, segment, and track the person and backpack in each camera.
 
 - Per-camera bounding boxes and segmentation masks
 - Camera-local ByteTrack IDs
+- Timestamped YOLO/ByteTrack worker results that retain the exact source-frame
+  identity
 - Confidence, mask area, and visibility fields
 - Annotated 2D video/frame previews
 - Missed-detection and occlusion observations
@@ -123,6 +129,8 @@ Detect, segment, and track the person and backpack in each camera.
 **Completion gate**
 
 - The person is tracked through a representative sequence.
+- The perception worker can consume a bounded queue or deterministic offline
+  stream without losing source identity; overload/failure behavior is explicit.
 - The backpack is detected while stationary and during at least part of the
   movement.
 - Occluded or missing backpack observations are explicitly represented.
@@ -149,6 +157,8 @@ depth only.
 - Raw per-camera person/backpack XYZ observations
 - Robust mask-to-XYZ aggregation
 - Explicit depth-frame identity, timestamp, and freshness provenance
+- Strict join results between YOLO masks and temporally compatible DA3 depth,
+  independent of which worker finishes first
 - Cross-camera confidence-weighted fused observations
 - Missing, occluded, and stale-position states
 - Raw and presentation trajectories
@@ -164,6 +174,8 @@ depth only.
 - Two-camera fusion uses only temporally compatible, valid dynamic
   observations; overlap is treated as redundancy, not as a correction for
   stale static depth.
+- Out-of-order worker completion cannot associate a mask with the wrong depth
+  frame or reorder the capture timeline.
 - Missing observations do not generate fabricated XYZ positions.
 - Coordinate and back-projection tests pass.
 
@@ -211,6 +223,7 @@ semantic interpretation.
 - Backpack interaction state machine
 - Pickup, carry, place, occluded, and unknown states
 - Triggered event clips
+- Bounded, deduplicated Qwen job queue and asynchronous timestamped results
 - Schema-validated Qwen event JSON
 - Retry and `unknown` fallback handling
 - Human-readable event summaries
@@ -218,6 +231,8 @@ semantic interpretation.
 **Completion gate**
 
 - A representative recording produces a sensible pickup-carry-place sequence.
+- Qwen delay, timeout, or failure does not block perception, depth, geometry,
+  or spatial-state processing.
 - Qwen output conforms to the event schema or safely becomes `unknown`.
 - Qwen never changes coordinates, identities, timestamps, or zone membership.
 - Occlusion is represented without invented object locations.
@@ -240,6 +255,10 @@ compatibility.
 - Synchronized Rerun 2D camera views
 - 3D scene, camera frustums, zones, tracks, and trajectories
 - Event and diagnostic timeline
+- Integrated local worker orchestration with bounded queues, explicit
+  backpressure/drop policy, and serialized MPS access by default
+- Queue depth, queue wait, processing latency, dropped/coalesced job, worker
+  failure, and accelerator-utilization diagnostics
 - Shareable `.rrd` recording
 - Track and event exports
 - File/RTSP source-interface smoke test
@@ -248,6 +267,13 @@ compatibility.
 
 - The complete recording can be replayed and scrubbed coherently.
 - Video, geometry, tracks, and events share one timeline.
+- Offline replay is deterministic even when worker results complete out of
+  order.
+- Qwen cannot block geometry, queues cannot grow without bound, and model
+  failures produce explicit degraded states.
+- The default single-M1 policy prevents unmeasured simultaneous heavy MPS
+  inference; any concurrency change cites measured memory and throughput
+  evidence.
 - Missing/stale observations are visibly distinguishable.
 - The RTSP adapter opens or reconnects to a local test stream.
 
@@ -271,11 +297,14 @@ Produce the final demonstration and consolidate findings.
 - Capture and calibration guide
 - Reproduction commands
 - Concise technical report covering value, limitations, failure cases, MPS
-  performance, and potential future alternatives
+  performance, model/queue scheduling observations, and potential future
+  alternatives
 
 **Completion gate**
 
 - Another task can reproduce the final run from documented commands and inputs.
 - The demo shows the intended object movement and semantic event sequence.
 - Limitations and failures are presented honestly.
+- The report separates demonstrated offline throughput from projected live
+  capacity and states the measured changes needed for a production deployment.
 - `docs/STATUS.md`, `docs/DECISIONS.md`, and all stage handoffs are current.

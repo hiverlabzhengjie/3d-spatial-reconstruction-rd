@@ -76,6 +76,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run cold/warm ordered-frame generation and persist gate evidence."""
+
     args = parse_args()
     config = load_project_config()
     video_path = args.video.resolve()
@@ -320,6 +322,8 @@ def _timed_generation(
     memory: list[MemoryObservation],
     source: SystemMemorySource,
 ) -> QwenTextResponse:
+    """Retain timing and peak memory evidence even when generation fails."""
+
     from PIL import Image
 
     typed_images = tuple(image for image in images if isinstance(image, Image.Image))

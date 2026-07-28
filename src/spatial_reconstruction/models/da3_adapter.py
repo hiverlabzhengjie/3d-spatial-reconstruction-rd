@@ -40,6 +40,8 @@ class DA3PredictionError(ValueError):
 
 
 class _VendorPrediction(Protocol):
+    """Subset of the vendor prediction consumed by project-owned code."""
+
     depth: object
     conf: object
     extrinsics: object
@@ -49,6 +51,8 @@ class _VendorPrediction(Protocol):
 
 
 class _VendorModel(Protocol):
+    """Subset of the unmodified DA3 API required by this adapter."""
+
     def inference(self, image: list[str], **kwargs: object) -> _VendorPrediction: ...
 
 
@@ -324,6 +328,8 @@ def compute_vendor_fingerprint(vendor_dir: Path) -> str:
 
 
 def _load_vendor_da3_class(vendor_dir: Path) -> Any:
+    """Import DA3 from its isolated vendor path with optional export disabled."""
+
     source_dir = vendor_dir / "src"
     package_dir = source_dir / "depth_anything_3"
     if not package_dir.is_dir():
@@ -384,6 +390,8 @@ def _install_two_view_alignment(model: nn.Module) -> None:
 
 
 def _install_disabled_colmap_export() -> None:
+    """Prevent eager PyCOLMAP loading inside the primary MPS process."""
+
     module_name = "depth_anything_3.utils.export.colmap"
     if module_name in sys.modules:
         return

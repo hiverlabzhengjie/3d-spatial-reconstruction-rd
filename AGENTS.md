@@ -21,7 +21,8 @@ Before planning or changing this project, read:
 2. `docs/ROADMAP.md`
 3. `docs/STATUS.md`
 4. `docs/DECISIONS.md`
-5. The latest applicable file in `docs/stages/`
+5. `docs/MODEL_SCHEDULING.md`
+6. The latest applicable file in `docs/stages/`
 
 Treat these files and the implementation in the workspace as the canonical
 project record. Do not rely on memory from another Codex task.
@@ -105,8 +106,18 @@ if the standard YOLO model cannot detect the backpack reliably.
 - Prefer small, testable modules and typed data contracts.
 - Keep model adapters replaceable. Add a non-baseline model or tool only under
   the controlled expansion rule above.
-- Heavy models may run sequentially; they do not need to remain resident
-  together.
+- Implement DA3, YOLO/ByteTrack, and Qwen as logically independent timestamped
+  workers operating at task-appropriate rates.
+- Logical worker concurrency does not require simultaneous heavy MPS
+  inference. On the single M1 Max, serialize accelerator access unless measured
+  evidence establishes that overlap is safe and useful.
+- Use bounded queues, explicit backpressure/drop policies, and immutable source
+  identity. Never use worker completion order as capture-time order.
+- Preserve one scheduling contract across deterministic offline/batch execution
+  and any future freshness-oriented live execution.
+- Heavy models do not need to remain resident together. Avoid repeated model
+  loading inside per-frame work; choose and record a measured residency/batching
+  policy at the applicable stage.
 - DA3 may operate on offline keyframes rather than every video frame.
 - Qwen processing must be asynchronous and must not block geometry processing.
 - Qwen may describe an event but may not change spatial coordinates, track

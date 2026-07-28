@@ -77,6 +77,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run the DA3 resolution ladder and persist model-gate evidence."""
+
     args = parse_args()
     config = load_project_config()
     output_dir = args.output_dir or _timestamped_output_dir(config.paths.artifacts_dir)
@@ -339,6 +341,8 @@ def _timed_inference(
     memory: list[MemoryObservation],
     source: SystemMemorySource,
 ) -> DA3Output:
+    """Retain timing and peak memory evidence even when inference fails."""
+
     monitor = PeakRSSMonitor(source=source)
     timer = PhaseTimer(phase=phase, device="mps")
     try:

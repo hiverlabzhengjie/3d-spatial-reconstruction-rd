@@ -50,28 +50,34 @@ replace a baseline stage gate silently.
 ```text
 Two fixed phone MP4 recordings
                |
-Timestamp alignment and synchronized frame pairs
+Timestamp alignment and immutable synchronized frame bundles
                |
 Camera undistortion and fixed pose calibration
                |
-DA3 pose-conditioned multi-view metric depth
-        |                              |
-Static room point cloud       Per-camera depth/confidence
-                                       |
-                          YOLO person/backpack masks
-                                       |
-                         DA3-depth back-projection
-                                       |
-                         Shared world XYZ observations
-                                       |
-                         Cross-camera confidence fusion
-                                       |
-                       Person/object tracks and state
-                                       |
-                  Triggered Qwen3-VL event interpretation
-                                       |
+        +----------------------+----------------------+
+        |                      |                      |
+ YOLO/ByteTrack worker     DA3 worker          Triggered Qwen worker
+ higher-rate 2D tracks     static once and     occasional semantic clips
+                          action keyframes
+        |                      |                      |
+        +--------- timestamped/provenanced results --+
+                               |
+               Exact frame/depth joins and back-projection
+                               |
+              Shared world XYZ, fusion, state, and events
+                               |
                  Rerun video/3D/event timeline recording
 ```
+
+The three model workers are logically asynchronous and operate at different
+rates. Their jobs and results are associated by capture session, camera, frame,
+and capture timestamp rather than by completion order. On the single M1 Max,
+heavy MPS calls may still be serialized through one accelerator controller
+while CPU decoding, synchronization, queue handling, validation, and output
+work continue. Recorded MP4 processing may use deterministic model-sized
+batches to avoid repeated loading; a future live policy may prioritize
+freshness and bounded latency. Both policies use the same contracts. See
+`docs/MODEL_SCHEDULING.md`.
 
 ## Static Scene Versus Dynamic-Object Depth
 

@@ -46,6 +46,8 @@ def resolve_autocast_policy(
 
 
 class _DA3Core(Protocol):
+    """Callable vendor core wrapped by the project-owned MPS boundary."""
+
     def __call__(
         self,
         image: torch.Tensor,

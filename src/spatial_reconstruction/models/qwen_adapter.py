@@ -143,6 +143,8 @@ class Qwen3VLAdapter:
     ) -> QwenTextResponse:
         """Generate without blocking the caller's event loop."""
 
+        # The future orchestrator still owns the single-MPS permit; this thread
+        # boundary provides logical asynchrony, not concurrent accelerator use.
         return await asyncio.to_thread(
             self._generate_sync,
             images=images,
@@ -285,6 +287,8 @@ def extract_uniform_video_frames(
         source_height = int(stream.height)
         if not math.isfinite(fps) or fps <= 0:
             raise QwenValidationError("video must report a valid frame rate")
+        # Container metadata can overstate the decodable count. A lightweight
+        # first pass gives reproducible endpoint sampling without retaining frames.
         decoded_frame_count = sum(1 for _ in container.decode(stream))
         if decoded_frame_count <= 1:
             raise QwenValidationError("video must contain more than one decodable frame")
@@ -293,6 +297,7 @@ def extract_uniform_video_frames(
             requested_count=frame_count,
         )
 
+    # Decode again and materialize only the selected frames to bound memory.
     with av.open(str(source_path), mode="r") as container:
         stream = container.streams.video[0]
         targets = set(target_indices)

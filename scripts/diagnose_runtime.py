@@ -42,6 +42,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run device selection, tensor timing, and JSON diagnostic emission."""
+
     args = parse_args()
     config = load_project_config()
     requested = config.runtime.preferred_device

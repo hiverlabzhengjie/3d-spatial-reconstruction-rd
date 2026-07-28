@@ -57,6 +57,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run cold/warm segmentation and persist model-gate evidence."""
+
     args = parse_args()
     config = load_project_config()
     image_path = args.image.resolve()
@@ -281,6 +283,8 @@ def _timed_prediction(
     memory: list[MemoryObservation],
     source: SystemMemorySource,
 ) -> NormalizedYOLOResult:
+    """Retain timing and peak memory evidence even when prediction fails."""
+
     monitor = PeakRSSMonitor(source=source)
     timer = PhaseTimer(phase=phase, device="mps")
     try:

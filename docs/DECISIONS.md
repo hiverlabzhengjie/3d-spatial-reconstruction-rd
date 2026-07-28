@@ -289,3 +289,56 @@ not a metric-accuracy claim. S00 uses synthetic cameras only to verify the
 pose-conditioned interface and MPS execution. S01 and S02 must use calibrated
 cameras and physical scene evidence before making geometric claims. The vendor
 source remains unmodified.
+
+## D020 - Timestamped multi-rate model workers
+
+**Date:** 2026-07-28
+**Status:** Active
+
+Adopt DA3, YOLO/ByteTrack, and Qwen as three logically independent workers that
+accept timestamped jobs and return timestamped, provenance-preserving results.
+They operate at different rates: YOLO/ByteTrack at the highest practical
+perception rate, DA3 for the static scene and selected synchronized action
+keyframes, and Qwen only for triggered candidate-event clips.
+
+Logical asynchrony is separate from hardware parallelism. On the current
+single M1 Max, one project-owned accelerator controller serializes heavy MPS
+inference by default. CPU ingestion, decoding, synchronization, queue handling,
+validation, state updates, and artifact writing may continue concurrently.
+Simultaneous heavy MPS inference requires later measured evidence that peak
+memory, latency, throughput, and correctness remain acceptable.
+
+Every job and result must preserve immutable source identity sufficient to
+associate capture session, camera, frame, and capture timestamp. Synchronization
+provenance and processing timing remain separate. Downstream joins use source
+identity and an explicit temporal tolerance, never worker completion order or
+an unqualified "latest result."
+
+Queues must be bounded and expose their overload behavior. Deterministic
+recorded-MP4 execution may throttle input or process model-sized batches to
+avoid repeated model loading. A future live policy may coalesce or drop
+superseded work to protect freshness, but it must record what was omitted and
+must preserve event-relevant inputs according to an explicit priority policy.
+No queue may accumulate unbounded latency.
+
+Qwen remains asynchronous, triggered, and unable to block or modify geometry,
+identity, timestamps, or zones. Its timeout or failure becomes an explicit
+`unknown` semantic result while perception and geometry continue. Missing or
+late DA3 output likewise produces missing/stale spatial state rather than reuse
+of mismatched depth.
+
+The worker contracts and behavior are implemented incrementally:
+
+1. S01 establishes deterministic synchronized frame identity;
+2. S03 establishes the bounded perception worker interface;
+3. S04 establishes DA3 action-keyframe jobs and strict mask/depth joins;
+4. S05 establishes the triggered Qwen queue and non-blocking failure path;
+5. S06 integrates orchestration, accelerator arbitration, diagnostics, replay,
+   and RTSP compatibility; and
+6. S07 records measured offline capacity and the engineering changes required
+   for future live production.
+
+This post-S00 decision does not reopen or weaken S00. S00 independently proved
+the model adapters, MPS operation, runtime provenance, separate-process
+execution, and asynchronous Qwen boundary needed by this architecture.
+`docs/MODEL_SCHEDULING.md` is the detailed implementation contract.
