@@ -93,7 +93,7 @@ def parse_args() -> argparse.Namespace:
         help="Strictly increasing synchronized times inside the accepted empty window.",
     )
     parser.add_argument("--process-resolution", type=int, default=504)
-    parser.add_argument("--confidence-percentile", type=float, default=40.0)
+    parser.add_argument("--confidence-percentile", type=float, default=20.0)
     parser.add_argument("--voxel-size-m", type=float, default=0.02)
     parser.add_argument(
         "--marker-scale-correction",

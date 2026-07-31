@@ -50,19 +50,25 @@ deterministic point-cloud fusion.
   reconstruction dependency.
 - Added a localhost-only Rerun web-viewer QA path after isolating a
   Rerun 0.22.1 native screenshot helper issue on Retina/Metal.
+- Reopened S02 after user inspection identified missing in-bounds room
+  surfaces, diagnosed confidence filtering rather than X/Y bounds as the
+  cause, and adopted D026 after the user approved the `20th`-percentile,
+  `Z >= 0` comparison.
 
 ## Accepted Result
 
-- Camera A point cloud: `30,239` points.
-- Camera B point cloud: `22,332` points.
-- Fused point cloud: `45,919` points.
-- Camera A points within `0.10 m` of Camera B: `69.295%`.
-- Camera B points within `0.10 m` of Camera A: `86.638%`.
-- Marker-derived scales: `1.164240`, `1.157371`, and `1.157654`.
+- Confidence percentile: `20th` under D026; the original X/Y/Z bounds remain
+  unchanged.
+- Camera A point cloud: `43,978` points.
+- Camera B point cloud: `38,874` points.
+- Fused point cloud: `71,613` points.
+- Camera A points within `0.10 m` of Camera B: `72.152%`.
+- Camera B points within `0.10 m` of Camera A: `85.000%`.
+- Marker-derived scales: `1.164252`, `1.157365`, and `1.157682`.
 - Maximum scale-observation deviation: `1.606%` against the `5%` limit.
 - Corrected marker camera-depth error: `0.020 m` median and `0.054 m` maximum.
-- Fused world extent: approximately `(-0.370, 0.272, 0.000)` to
-  `(2.841, 4.044, 2.001) m`.
+- Fused world extent: approximately `(-0.385, -0.322, 0.000)` to
+  `(2.841, 4.152, 2.004) m`.
 - The living room, bed, floor/wall structure, and furniture are recognizable.
 - Both calibrated cameras and the point cloud are displayed together in one
   right-handed, metre, Z-up Rerun scene.
@@ -91,20 +97,22 @@ previews, Rerun recordings, environments, and caches remain excluded from Git.
 
 | Artifact | Location | Purpose |
 |---|---|---|
-| Accepted run summary | `artifacts/s02/candidate_three_keyframes_20260731/summary.json` | Schema-validated model/input/filter/runtime provenance |
-| Raw DA3 predictions | `artifacts/s02/candidate_three_keyframes_20260731/predictions/` | Depth, confidence, processed RGB, intrinsics, and poses |
-| Retained keyframes | `artifacts/s02/candidate_three_keyframes_20260731/keyframes/` | Undistorted synchronized frame evidence |
-| Camera A PLY | `artifacts/s02/candidate_three_keyframes_20260731/camera_a_static_scene.ply` | Camera A world-space geometry |
-| Camera B PLY | `artifacts/s02/candidate_three_keyframes_20260731/camera_b_static_scene.ply` | Camera B world-space geometry |
-| Fused PLY | `artifacts/s02/candidate_three_keyframes_20260731/static_scene.ply` | Accepted static scene |
-| Geometry PNG | `artifacts/s02/candidate_three_keyframes_20260731/previews/static_scene_geometry.png` | Recognizability and camera-frame QA |
-| Geometry GLB | `artifacts/s02/candidate_three_keyframes_20260731/previews/static_scene_with_cameras.glb` | Interactive general 3D preview |
-| Rerun recording | `artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd` | Digital Twin-style geometry and camera view |
-| Rerun screenshot | `artifacts/s02/candidate_three_keyframes_20260731/previews/rerun_static_scene_accepted.png` | Accepted viewer evidence |
-| Verification report | `artifacts/s02/candidate_three_keyframes_20260731/verification.json` | Hashes, overlap metrics, extents, and automated gate checks |
+| Accepted run summary | `artifacts/s02/completeness_accepted_v2_20260731/summary.json` | Schema-validated model/input/filter/runtime provenance |
+| Raw DA3 predictions | `artifacts/s02/completeness_accepted_v2_20260731/predictions/` | Depth, confidence, processed RGB, intrinsics, and poses |
+| Retained keyframes | `artifacts/s02/completeness_accepted_v2_20260731/keyframes/` | Undistorted synchronized frame evidence |
+| Camera A PLY | `artifacts/s02/completeness_accepted_v2_20260731/camera_a_static_scene.ply` | Camera A world-space geometry |
+| Camera B PLY | `artifacts/s02/completeness_accepted_v2_20260731/camera_b_static_scene.ply` | Camera B world-space geometry |
+| Fused PLY | `artifacts/s02/completeness_accepted_v2_20260731/static_scene.ply` | Accepted static scene |
+| Geometry PNG | `artifacts/s02/completeness_accepted_v2_20260731/previews/static_scene_geometry.png` | Recognizability and camera-frame QA |
+| Geometry GLB | `artifacts/s02/completeness_accepted_v2_20260731/previews/static_scene_with_cameras.glb` | Interactive general 3D preview |
+| Rerun recording | `artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd` | Digital Twin-style geometry and camera view |
+| Rerun screenshot | `artifacts/s02/completeness_accepted_v2_20260731/previews/rerun_static_scene_accepted.png` | Accepted viewer evidence |
+| Verification report | `artifacts/s02/completeness_accepted_v2_20260731/verification.json` | Hashes, overlap metrics, extents, and automated gate checks |
 
-The first raw metric diagnostic and the corrected single-pair diagnostic remain
-separately retained under `artifacts/s02/first_calibrated_20260731/` and
+The prior `40th`-percentile accepted baseline remains under
+`artifacts/s02/candidate_three_keyframes_20260731/`. The first raw metric
+diagnostic and corrected single-pair diagnostic remain separately retained
+under `artifacts/s02/first_calibrated_20260731/` and
 `artifacts/s02/corrected_calibrated_20260731/`.
 
 ## Verification
@@ -114,15 +122,24 @@ separately retained under `artifacts/s02/first_calibrated_20260731/` and
 ```text
 .venv/bin/python scripts/s02/reconstruct_static_scene.py \
   --target-time-seconds 22 30 38 \
-  --output-dir artifacts/s02/candidate_three_keyframes_20260731
+  --confidence-percentile 20 \
+  --output-dir artifacts/s02/completeness_accepted_v2_20260731
 
 .venv/bin/python scripts/s02/export_rerun_static_scene.py \
   --run-summary \
-    artifacts/s02/candidate_three_keyframes_20260731/summary.json \
+    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
   --output \
-    artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd
+    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
 
-.venv/bin/python scripts/s02/verify_static_scene.py
+.venv/bin/python scripts/s02/verify_static_scene.py \
+  --run-summary \
+    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
+  --rerun-export-summary \
+    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted_export_summary.json \
+  --rerun-screenshot \
+    artifacts/s02/completeness_accepted_v2_20260731/previews/rerun_static_scene_accepted.png \
+  --output \
+    artifacts/s02/completeness_accepted_v2_20260731/verification.json
 
 .venv/bin/pytest -q
 .venv/bin/ruff check src tests scripts
@@ -130,7 +147,7 @@ separately retained under `artifacts/s02/first_calibrated_20260731/` and
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache lock --check
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache sync --check
 .venv/bin/rerun rrd print \
-  artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd
+  artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
 git diff --check
 ```
 
@@ -166,6 +183,9 @@ a new output directory and Rerun filename for a reproduction run.
 - Cross-camera overlap is a shared-surface measure, not complete-room coverage.
 - D025 is allowed only for derived S02 static geometry. Raw DA3 outputs remain
   unchanged, and S04 dynamic localization must not inherit this scalar.
+- D026 lowers only the derived S02 confidence percentile. It preserves raw
+  predictions and the original room bounds, and it may retain more noisy
+  low-confidence samples.
 - The two cameras retain the bounded shared-intrinsic assumption from D021.
 - Room bounds remain a conservative processing crop rather than surveyed
   surfaces.
@@ -177,6 +197,7 @@ a new output directory and Rerun filename for a reproduction run.
 ## Decisions Made
 
 - D025 - marker-anchored scalar correction for S02 static depth.
+- D026 - lower static-scene confidence percentile for room completeness.
 
 No optional COLMAP, SfM, MVS, stereo, triangulation, Gaussian Splatting, or
 other independent reconstruction method was activated.
@@ -212,6 +233,7 @@ Inputs and physical state:
   `4084c34e9c1d26d6dae0294fa0321ec238824704`
 - Stage-close GitHub URL:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/4084c34e9c1d26d6dae0294fa0321ec238824704`
+- D026 completeness-revision commit: `Pending`
 - Annotated tag: `None`
 - Remote push verified: `Yes`; `refs/heads/main` resolved to
   `4084c34e9c1d26d6dae0294fa0321ec238824704` before this provenance-only
@@ -227,5 +249,6 @@ own final hash.
 
 ## Exact Next Action
 
-Stop. Begin S03 person/backpack perception only after explicit user
-instruction.
+Commit and push the verified D026 completeness revision, record its remote
+provenance, then stop. Begin S03 person/backpack perception only after
+explicit user instruction.

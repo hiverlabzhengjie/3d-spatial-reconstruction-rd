@@ -77,38 +77,48 @@ The accepted run selected the complete synchronized bundles nearest `22.0`,
 | `30.0 s` | `30.013333 s` | `900` | `3.333 ms` |
 | `38.0 s` | `37.983333 s` | `1139` | `3.333 ms` |
 
-The model loaded once on native Apple MPS in `7.424 s`. Pair inference took
-`1.638 s`, `1.374 s`, and `1.357 s`; there was no CPU fallback. Raw depth,
+The final completeness revision loaded the model once on native Apple MPS in
+`34.144 s`. Pair inference took `15.812 s`, `10.879 s`, and `10.871 s`; there
+was no CPU fallback. Raw depth,
 confidence, processed RGB, immutable source identities, timestamps, and
 retained keyframes remain inspectable for every prediction.
 
 D025 produced one shared two-camera scale per bundle:
 
-- `22.010000 s`: `1.164240`;
-- `30.013333 s`: `1.157371`;
-- `37.983333 s`: `1.157654`.
+- `22.010000 s`: `1.164252`;
+- `30.013333 s`: `1.157365`;
+- `37.983333 s`: `1.157682`.
 
-The scale range across the stable interval is `0.006870`. The maximum
+The scale range across the stable interval is `0.006887`. The maximum
 single-observation relative deviation is `1.606%`, below the `5%` rejection
 limit. Across all eighteen M40-M42 observations, corrected marker camera-depth
 error is `0.020 m` median and `0.054 m` maximum.
 
-After confidence, finite-depth, conservative room-bound, and `0.02 m` voxel
-filtering, the accepted point clouds contain:
+The original `40th`-percentile accepted baseline contained Camera A/B/fused
+clouds of `30,239`, `22,332`, and `45,919` points. User inspection found that
+the in-bounds door, primary wall, tall white cabinet, and table-top lamp were
+weak or absent. Diagnostic evidence showed that expanding X/Y would add only
+`21` finite samples, while lowering the confidence cutoff restored those
+surfaces. Under D026 the user selected the `20th`-percentile variant with the
+original `Z >= 0` floor clip; the evaluated `Z >= -0.1 m` variant was rejected
+because it introduced a below-floor sheet.
 
-- Camera A: `30,239` points;
-- Camera B: `22,332` points;
-- fused: `45,919` points.
+After the approved confidence, finite-depth, unchanged room-bound, and
+`0.02 m` voxel filtering, the accepted completeness revision contains:
 
-The fused extent is approximately `(-0.370, 0.272, 0.000)` to
-`(2.841, 4.044, 2.001) m`, wholly inside the declared processing bounds.
+- Camera A: `43,978` points;
+- Camera B: `38,874` points;
+- fused: `71,613` points.
+
+The fused extent is approximately `(-0.385, -0.322, 0.000)` to
+`(2.841, 4.152, 2.004) m`, wholly inside the unchanged processing bounds.
 
 ## Cross-Camera and Visual QA
 
 An exact spatial-hash radius check on the retained per-camera PLY files found:
 
-- `69.295%` of Camera A points within `0.10 m` of Camera B;
-- `86.638%` of Camera B points within `0.10 m` of Camera A.
+- `72.152%` of Camera A points within `0.10 m` of Camera B;
+- `85.000%` of Camera B points within `0.10 m` of Camera A.
 
 Both exceed the recorded `65%` minimum for shared visible surfaces. The
 asymmetry is expected because Camera A sees surfaces outside Camera B's useful
@@ -128,7 +138,7 @@ capture therefore uses Rerun's localhost-only web viewer.
 
 The accepted artifact directory is:
 
-`artifacts/s02/candidate_three_keyframes_20260731/`
+`artifacts/s02/completeness_accepted_v2_20260731/`
 
 Important outputs:
 
@@ -141,12 +151,14 @@ Important outputs:
 - `static_scene.ply` - accepted fused geometry;
 - `previews/static_scene_geometry.png`;
 - `previews/static_scene_with_cameras.glb`;
-- `static_scene_accepted_v2.rrd`;
-- `static_scene_accepted_v2_export_summary.json`;
+- `static_scene_accepted.rrd`;
+- `static_scene_accepted_export_summary.json`;
 - `previews/rerun_static_scene_accepted.png`;
 - `verification.json` - schema-validated hashes and automated gate evidence.
 
-The raw uncorrected diagnostic remains under
+The prior `40th`-percentile baseline remains under
+`artifacts/s02/candidate_three_keyframes_20260731/`. The raw uncorrected
+diagnostic remains under
 `artifacts/s02/first_calibrated_20260731/`; the corrected single-pair
 diagnostic remains under `artifacts/s02/corrected_calibrated_20260731/`.
 
@@ -155,18 +167,27 @@ diagnostic remains under `artifacts/s02/corrected_calibrated_20260731/`.
 ```text
 .venv/bin/python scripts/s02/reconstruct_static_scene.py \
   --target-time-seconds 22 30 38 \
-  --output-dir artifacts/s02/candidate_three_keyframes_20260731
+  --confidence-percentile 20 \
+  --output-dir artifacts/s02/completeness_accepted_v2_20260731
 
 .venv/bin/python scripts/s02/export_rerun_static_scene.py \
   --run-summary \
-    artifacts/s02/candidate_three_keyframes_20260731/summary.json \
+    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
   --output \
-    artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd
+    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
 
 .venv/bin/rerun \
-  artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd
+  artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
 
-.venv/bin/python scripts/s02/verify_static_scene.py
+.venv/bin/python scripts/s02/verify_static_scene.py \
+  --run-summary \
+    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
+  --rerun-export-summary \
+    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted_export_summary.json \
+  --rerun-screenshot \
+    artifacts/s02/completeness_accepted_v2_20260731/previews/rerun_static_scene_accepted.png \
+  --output \
+    artifacts/s02/completeness_accepted_v2_20260731/verification.json
 
 .venv/bin/pytest -q
 .venv/bin/ruff check src tests scripts
@@ -174,7 +195,7 @@ diagnostic remains under `artifacts/s02/corrected_calibrated_20260731/`.
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache lock --check
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache sync --check
 .venv/bin/rerun rrd print \
-  artifacts/s02/candidate_three_keyframes_20260731/static_scene_accepted_v2.rrd
+  artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
 git diff --check
 ```
 
@@ -215,6 +236,8 @@ or Rerun recording. Use a new output path when reproducing the run.
   incomplete or noisy.
 - The D025 scalar is authorized only for derived S02 static geometry; it does
   not alter raw DA3 output and must not be reused for S04 dynamic localization.
+- D026's `20th`-percentile filter is an S02 completeness/noise trade-off. It
+  retains more low-confidence surfaces and does not redefine room bounds.
 - Camera intrinsics remain the bounded shared estimate accepted under D021.
 - Room bounds are a conservative crop rather than measured wall/ceiling
   surfaces.
@@ -223,5 +246,5 @@ or Rerun recording. Use a new output path when reproducing the run.
 
 ## Exact Next Action
 
-S02 is closed and remotely verified. Stop; do not begin S03 until the user
-explicitly requests it.
+Commit and push the verified D026 completeness revision, record its remote
+provenance, then stop. Do not begin S03.

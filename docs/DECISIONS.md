@@ -511,3 +511,31 @@ option. If the six ratios disagree beyond the limit, the run must stop instead
 of applying a partial or camera-specific correction. This decision makes no
 survey-grade accuracy claim; marker centres retain their stated
 `+/-0.05 m` uncertainty.
+
+## D026 - Lower static-scene confidence percentile for room completeness
+
+**Date:** 2026-07-31
+**Status:** Active
+
+The accepted S02 reconstruction at DA3's `40th` confidence percentile was
+geometrically coherent, but user inspection showed that the door, primary
+wall, tall white cabinet, and table-top lamp were weak or absent. Diagnostic
+counts showed that expanding the declared X/Y room bounds would recover only
+`21` finite-depth samples outside those limits and would therefore not restore
+the missing surfaces. The relevant in-bounds surfaces instead had confidence
+values below the per-pair `40th` percentile.
+
+For the derived S02 static reconstruction, use the `20th` confidence percentile
+while retaining the existing processing bounds of `(-0.5, -0.5, 0.0)` to
+`(3.0, 4.5, 3.0) m`. Keep the floor clip at world `Z >= 0`; an evaluated
+`Z >= -0.1 m` variant introduced a visible below-floor sheet and is rejected.
+The user selected the `20th`-percentile, `Z >= 0` comparison as the preferred
+completeness/noise trade-off.
+
+This change affects only confidence filtering of derived S02 static point
+clouds. It does not alter raw DA3 depth/confidence, D025 marker scaling,
+calibration, camera poses, source frames, timestamps, or later dynamic-object
+localization. Preserve the prior `40th`-percentile artifacts as a baseline,
+write the revised run to a new artifact directory, and re-run finite-value,
+bounds, cross-camera overlap, schema, hash, and visual Rerun verification
+before re-closing S02.

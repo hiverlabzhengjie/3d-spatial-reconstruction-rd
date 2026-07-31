@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
 **Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - stage-close commit pushed and remotely verified
+**Stage state:** Complete - D026 revision gate passed; version-control close pending
 
 ## Completed
 
@@ -272,12 +272,20 @@
     marker-depth underestimate in both views, applying only a bounded shared
     scalar to derived S02 static geometry while leaving raw DA3 output
     unchanged;
-  - accepted scales `1.164240`, `1.157371`, and `1.157654`, with `1.606%`
+  - accepted scales `1.164252`, `1.157365`, and `1.157682`, with `1.606%`
     maximum observation deviation against the `5%` rejection limit;
-  - retained Camera A/B clouds with `30,239` and `22,332` points and a
-    `45,919`-point fused static scene;
-  - measured bidirectional `0.10 m` shared-surface overlap of `69.295%` and
-    `86.638%`, with all accepted points finite and inside the declared bounds;
+  - after user review, diagnosed the weak door, primary wall, tall cabinet,
+    and table-top lamp as a confidence-filtering issue rather than an X/Y
+    bound issue: expanding X/Y would have recovered only `21` finite samples;
+  - adopted D026 after the user selected the `20th`-percentile, `Z >= 0`
+    comparison, retaining the original room bounds and rejecting a
+    below-floor `Z >= -0.1 m` sheet;
+  - retained revised Camera A/B clouds with `43,978` and `38,874` points and a
+    `71,613`-point fused static scene; the prior `40th`-percentile result is
+    preserved as a baseline;
+  - measured revised bidirectional `0.10 m` shared-surface overlap of `72.152%`
+    and `85.000%`, with all accepted points finite and inside the unchanged
+    declared bounds;
   - visually verified recognizable living-room geometry plus both calibrated
     cameras, markers, bounds, and zones in the accepted Rerun recording;
   - produced schema-validated run, Rerun, and verification evidence, including
@@ -341,5 +349,6 @@
 
 ## Exact Next Action
 
-Stop. Do not begin S03 person/backpack perception until the user explicitly
-requests it.
+Commit and push the verified D026 S02 completeness revision, confirm
+`origin/main` resolves to it, record the revision provenance, then stop. Do not
+begin S03.
