@@ -255,6 +255,9 @@
   - recorded local capture notes plus conservative approximate room/zone
     metadata. The processing bounds are `(-0.5, -0.5, 0.0)` to
     `(3.0, 4.5, 3.0) m` and are not represented as surveyed walls/ceiling.
+  - closed S01 with commit
+    `9d2bb08778c3a6fe014c8e300ab511d9dafa6b4a`, pushed it to `origin/main`,
+    and verified the remote branch resolved to that exact commit.
 
 ## Current Blockers and Unknowns
 

@@ -226,10 +226,14 @@ Physical/user actions:
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: `<pending>`
-- Stage-close GitHub URL: `<pending>`
+- Stage-close commit:
+  `9d2bb08778c3a6fe014c8e300ab511d9dafa6b4a`
+- Stage-close GitHub URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/9d2bb08778c3a6fe014c8e300ab511d9dafa6b4a`
 - Annotated tag: `None`
-- Remote push verified: `No - pending stage-close publication`
+- Remote push verified: `Yes`; `refs/heads/main` resolved to
+  `9d2bb08778c3a6fe014c8e300ab511d9dafa6b4a` before this provenance-only
+  handoff update.
 - Vendor/model revisions:
   - DA3 vendor fingerprint:
     `683cad1fec1186cd2a22f2b6d083b73d4c83c7ab1140f45ba24876612bc51d43`;
@@ -239,6 +243,9 @@ Physical/user actions:
     `a7cd8f929e1903d78a12a48efecab430209f18dc46cb96c3599a5980c63c423c`;
   - Qwen model revision:
     `89644892e4d85e24eaac8bacfd4f463576704203`.
+
+This handoff's final commit reference is recorded in a separate documentation
+commit because a Git commit cannot contain its own final hash.
 
 ## Exact Next Action
 
