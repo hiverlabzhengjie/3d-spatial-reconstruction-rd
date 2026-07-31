@@ -223,5 +223,5 @@ or Rerun recording. Use a new output path when reproducing the run.
 
 ## Exact Next Action
 
-Create the S02 stage handoff, close and push the stage, then stop. S03 must not
-begin until the user explicitly requests it.
+S02 is closed and remotely verified. Stop; do not begin S03 until the user
+explicitly requests it.

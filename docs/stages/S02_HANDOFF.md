@@ -208,20 +208,24 @@ Inputs and physical state:
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: `Pending`
-- Stage-close GitHub URL: `Pending`
+- Stage-close commit:
+  `4084c34e9c1d26d6dae0294fa0321ec238824704`
+- Stage-close GitHub URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/4084c34e9c1d26d6dae0294fa0321ec238824704`
 - Annotated tag: `None`
-- Remote push verified: `Pending`
+- Remote push verified: `Yes`; `refs/heads/main` resolved to
+  `4084c34e9c1d26d6dae0294fa0321ec238824704` before this provenance-only
+  handoff update.
 - DA3 vendor fingerprint:
   `683cad1fec1186cd2a22f2b6d083b73d4c83c7ab1140f45ba24876612bc51d43`
 - DA3 model revision:
   `b2359bdf726fb44ef62acca04d629dcf158053e7`
 
-The final stage-close commit reference will be recorded in a separate
-provenance-only documentation commit because a Git commit cannot contain its
+This handoff's final commit reference is recorded in this separate
+provenance-only documentation update because a Git commit cannot contain its
 own final hash.
 
 ## Exact Next Action
 
-Stop after the S02 stage-close push. Begin S03 person/backpack perception only
-after explicit user instruction.
+Stop. Begin S03 person/backpack perception only after explicit user
+instruction.

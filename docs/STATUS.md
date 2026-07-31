@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
 **Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - completion gate passed; stage-close provenance pending
+**Stage state:** Complete - stage-close commit pushed and remotely verified
 
 ## Completed
 
@@ -286,7 +286,10 @@
     Rerun-structure, artifact-hash, and whitespace checks;
   - recorded exact evidence in
     `docs/stages/S02_DA3_STATIC_GEOMETRY.md` and
-    `docs/stages/S02_HANDOFF.md`.
+    `docs/stages/S02_HANDOFF.md`;
+  - closed S02 with commit
+    `4084c34e9c1d26d6dae0294fa0321ec238824704`, pushed it to `origin/main`,
+    and verified the remote branch resolved to that exact commit.
 
 ## Current Blockers and Unknowns
 
@@ -338,5 +341,5 @@
 
 ## Exact Next Action
 
-Complete and verify the S02 stage-close Git provenance, then stop. Do not begin
-S03 person/backpack perception until the user explicitly requests it.
+Stop. Do not begin S03 person/backpack perception until the user explicitly
+requests it.
