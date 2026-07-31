@@ -267,5 +267,5 @@ or Rerun recording. Use a new output path when reproducing the run.
 
 ## Exact Next Action
 
-Commit and push the verified D027 door-inclusive revision, record its remote
-provenance, then stop. Do not begin S03.
+S02 and its D027 door-inclusive revision are remotely verified. Stop; do not
+begin S03 until the user explicitly requests it.

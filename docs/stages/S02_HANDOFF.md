@@ -254,10 +254,13 @@ Inputs and physical state:
   `e163b4e72c90ac798e84df264162b93541922a3c`
 - D026 completeness-revision GitHub URL:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/e163b4e72c90ac798e84df264162b93541922a3c`
-- D027 door-inclusive revision commit: `Pending`
+- D027 door-inclusive revision commit:
+  `9226a85911cba0e032bdf76b5d32bb9828ff1997`
+- D027 door-inclusive revision GitHub URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/9226a85911cba0e032bdf76b5d32bb9828ff1997`
 - Annotated tag: `None`
 - Remote push verified: `Yes`; `refs/heads/main` resolved to
-  `e163b4e72c90ac798e84df264162b93541922a3c` before this final
+  `9226a85911cba0e032bdf76b5d32bb9828ff1997` before this final
   provenance-only handoff update.
 - DA3 vendor fingerprint:
   `683cad1fec1186cd2a22f2b6d083b73d4c83c7ab1140f45ba24876612bc51d43`
@@ -270,5 +273,4 @@ own final hash.
 
 ## Exact Next Action
 
-Commit and push the verified D027 door-inclusive revision, record its remote
-provenance, then stop. Begin S03 only after explicit user instruction.
+Stop. Begin S03 only after explicit user instruction.

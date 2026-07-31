@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
 **Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - D027 door-inclusion gate passed; version-control close pending
+**Stage state:** Complete - D027 door-inclusive revision pushed and remotely verified
 
 ## Completed
 
@@ -312,6 +312,9 @@
   - re-verified and published the user-approved D026 completeness revision with
     commit `e163b4e72c90ac798e84df264162b93541922a3c`; `origin/main` resolved to
     that exact revision before the final provenance-only update.
+  - re-verified and published the D027 door-inclusive revision with commit
+    `9226a85911cba0e032bdf76b5d32bb9828ff1997`; `origin/main` resolved to
+    that exact revision before this final provenance-only update.
 
 ## Current Blockers and Unknowns
 
@@ -363,6 +366,5 @@
 
 ## Exact Next Action
 
-Commit and push the verified D027 S02 door-inclusive revision, confirm
-`origin/main` resolves to it, record the revision provenance, then stop. Do not
-begin S03.
+Stop. Do not begin S03 person/backpack perception until the user explicitly
+requests it.
