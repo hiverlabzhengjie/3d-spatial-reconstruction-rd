@@ -342,3 +342,133 @@ This post-S00 decision does not reopen or weaken S00. S00 independently proved
 the model adapters, MPS operation, runtime provenance, separate-process
 execution, and asynchronous Qwen boundary needed by this architecture.
 `docs/MODEL_SCHEDULING.md` is the detailed implementation contract.
+
+## D021 - Shared intrinsic estimate for the matched phone pair
+
+**Date:** 2026-07-30
+**Status:** Active
+
+Camera A and Camera B are both iPhone 16 Pro Max devices using the same
+13 mm-equivalent ultrawide lens, 1920x1080 recording mode, nominal 30 FPS,
+disabled enhanced stabilization and automatic lens switching, and the same
+focus/exposure/white-balance locking procedure. For this exploratory prototype,
+the accepted Camera A ChArUco capture supplies one shared numerical intrinsic
+and distortion estimate for both cameras.
+
+Persistent calibration outputs must still contain separate `camera_a` and
+`camera_b` records. Each record will state that its numeric parameters came
+from the shared capture `camera_ab_intrinsics.mp4`, rather than implying that
+Camera B was independently calibrated. The raw source hash and common recording
+configuration will be retained.
+
+This is a bounded accuracy tradeoff, not a claim that two physical lenses are
+identical. Camera B must pass fixed-world-pose marker reprojection and frustum
+plausibility checks. Materially worse Camera B reprojection, systematic
+edge residuals, or failure of the S01 pose gate requires a separate Camera B
+intrinsic capture and calibration.
+
+## D022 - Fixed camera poses use common markers M40-M42
+
+**Date:** 2026-07-30
+**Status:** Active
+
+The fixed Camera A and Camera B poses use M40, M41, and M42 as their common
+world-pose anchors. These are the three complete, non-collinear 180 mm markers
+detected repeatedly in both synchronized cameras. Their aggregate reprojection
+errors are `1.527 px` for Camera A and `1.481 px` for Camera B, and both pose
+stability and frustum-plausibility checks pass.
+
+M43 is not used to fit either pose. Camera B shows only a clipped portion that
+cannot produce an ArUco detection. In Camera A, M43 is detected but its recorded
+centre `(1.10, 3.70, 0.00) m` produces `100.044 px` RMS reprojection error when
+checked against the independently fitted M40-M42 pose. This is inconsistent
+with the stated `+/-0.05 m` centre-measurement uncertainty.
+
+The project will not replace M43's measured coordinates with a value inferred
+from the calibration image. Its failed check remains in the diagnostic output.
+The M40-M42 pose is accepted for this exploratory prototype because it retains
+twelve well-distributed planar corners and passes both cameras' numerical and
+visual checks. If later static geometry exposes a material world-alignment
+problem, M43 must be remeasured/repositioned and the fixed-pose calibration
+repeated rather than silently adjusted.
+
+## D023 - Versioned capture-specific pose correction
+
+**Date:** 2026-07-30
+**Status:** Active
+
+Retain the fixed-world-pose calibration as the physical reference, but allow
+each later recording to store a versioned capture-specific
+`T_world_from_camera` and `T_camera_from_world` correction solved from
+stationary M40-M42 observations. This addresses small effective image-pose
+changes caused by unavoidable mount settling or a phone camera's
+per-recording stabilization state without changing the surveyed world frame,
+marker coordinates, or shared intrinsic estimate.
+
+A capture-specific correction is accepted only when:
+
+1. M40-M42 are complete, stationary, and jointly visible in a stable interval;
+2. aggregate and sampled marker reprojection remain within the established
+   `5 px` thresholds;
+3. the capture's per-frame pose stability, camera height, downward optical
+   axis, and floor-intersection checks pass;
+4. camera-centre displacement from the physical reference is no more than
+   `0.05 m`; and
+5. rotation difference from the physical reference is no more than
+   `1.0 degree`.
+
+Exceeding either reference-difference boundary is treated as physical camera
+movement or invalid calibration, not as an automatically accepted correction.
+Every downstream frame bundle must identify the capture-specific pose version
+it uses. No correction may be inferred from an occluded or moving marker.
+
+For a future live CCTV feed, the analogous policy is periodic marker-based
+drift monitoring and timestamped pose-version updates while the markers are
+reliably visible. It is not unconstrained per-frame pose fitting, and it does
+not weaken the requirement to invalidate calibration after material physical
+camera movement. Production monitoring remains outside the present prototype.
+
+## D024 - Video-estimated pickup and drop-off zones
+
+**Date:** 2026-07-30
+**Status:** Active
+
+Estimate the two zone centres from the synchronized empty-room video instead
+of requiring a separate physical survey. The visible blue and white ropes are
+treated as thin circle boundaries, not as filled colour regions. Their supplied
+horizontal radius remains fixed at approximately `0.30 m`.
+
+This activates two narrowly scoped supporting geometry operations:
+
+1. intersect each camera's white-rope centre ray with the known world `Z=0`
+   floor plane, then compare/fuse the two estimates; and
+2. triangulate an initial blue-rope centre above the bed, then refine its
+   `(X, Y, Z)` against the projected `0.30 m` horizontal ring boundary in both
+   cameras.
+
+The existing baseline cannot recover the bed zone's depth from one annotated
+pixel because a pixel defines only a ray, and the user has declined a physical
+bed-height/zone survey. The implementation uses only existing OpenCV and NumPy
+geometry with a small semi-automatic annotation/validation step; it adds no
+model or runtime dependency.
+
+These estimates may influence only persistent pickup/drop-off zone metadata,
+zone-membership checks, event-state transitions, and zone visualization. They
+may not change camera calibration, marker coordinates, DA3 depth, person or
+backpack XYZ observations, track identity, or timestamps. In particular, this
+decision does not introduce triangulation as the S04 person/backpack
+localization method.
+
+Acceptance requires:
+
+- synthetic ray/plane and two-view triangulation tests;
+- positive-depth and declared-room plausibility;
+- low cross-camera reprojection/ring-boundary residuals;
+- independent Camera A/B agreement for the floor zone;
+- annotated overlays in both cameras; and
+- user visual/sanity validation of the resulting estimates.
+
+If the views disagree materially or the rope cannot be annotated reliably, the
+estimate remains unaccepted and the fallback is physical measurement or a
+clearer zone capture. Inferred values remain explicitly labelled
+video-estimated rather than surveyed.

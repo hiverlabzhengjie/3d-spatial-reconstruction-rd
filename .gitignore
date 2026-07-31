@@ -9,6 +9,7 @@ __pycache__/
 # Local model caches and generated outputs
 .cache/
 artifacts/
+output/pdf/
 *.rrd
 *.pt
 *.pth

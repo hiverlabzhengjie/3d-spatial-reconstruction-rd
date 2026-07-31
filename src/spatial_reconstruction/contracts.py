@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from enum import StrEnum
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -19,6 +21,20 @@ NonNegativeInt = Annotated[int, Field(ge=0)]
 Vector3 = tuple[FiniteFloat, FiniteFloat, FiniteFloat]
 Vector4 = tuple[FiniteFloat, FiniteFloat, FiniteFloat, FiniteFloat]
 Matrix4x4 = tuple[Vector4, Vector4, Vector4, Vector4]
+Sha256Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+
+
+def _stable_identity_digest(payload: dict[str, Any]) -> str:
+    """Hash one canonical JSON identity payload."""
+
+    serialized = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+        default=lambda value: value.value if isinstance(value, StrEnum) else str(value),
+    ).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
 
 
 class ContractModel(BaseModel):
@@ -44,6 +60,299 @@ class FrameRef(ContractModel):
         if not normalized:
             raise ValueError("frame text fields must not be empty")
         return normalized
+
+
+class FrameSourceKind(StrEnum):
+    """Supported frame-source transport boundaries."""
+
+    FILE = "file"
+    RTSP = "rtsp"
+
+
+class SourceFingerprintKind(StrEnum):
+    """Meaning of the immutable source fingerprint."""
+
+    CONTENT_SHA256 = "content_sha256"
+    STREAM_CONFIGURATION_SHA256 = "stream_configuration_sha256"
+
+
+class FrameIdentity(ContractModel):
+    """Persistent immutable identity for one decoded source frame."""
+
+    schema_version: Literal[1] = 1
+    capture_session_id: str
+    camera_id: str
+    source_kind: FrameSourceKind
+    source_frame_index: NonNegativeInt
+    source_timestamp_seconds: NonNegativeFloat
+    capture_timestamp_seconds: NonNegativeFloat
+    source_ref: str
+    source_fingerprint: Sha256Digest
+    source_fingerprint_kind: SourceFingerprintKind
+    synchronization_manifest_ref: str
+    synchronization_manifest_sha256: Sha256Digest
+    pose_version_id: str
+    image_width: PositiveInt
+    image_height: PositiveInt
+    frame_id: Sha256Digest
+
+    @field_validator(
+        "capture_session_id",
+        "camera_id",
+        "source_ref",
+        "synchronization_manifest_ref",
+        "pose_version_id",
+    )
+    @classmethod
+    def require_identity_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("frame identity text fields must not be empty")
+        if normalized != value:
+            raise ValueError("frame identity text fields must not have outer whitespace")
+        return value
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        capture_session_id: str,
+        camera_id: str,
+        source_kind: FrameSourceKind,
+        source_frame_index: int,
+        source_timestamp_seconds: float,
+        capture_timestamp_seconds: float,
+        source_ref: str,
+        source_fingerprint: str,
+        source_fingerprint_kind: SourceFingerprintKind,
+        synchronization_manifest_ref: str,
+        synchronization_manifest_sha256: str,
+        pose_version_id: str,
+        image_width: int,
+        image_height: int,
+    ) -> Self:
+        """Create an identity with its deterministic content-derived ID."""
+
+        payload: dict[str, Any] = {
+            "schema_version": 1,
+            "capture_session_id": capture_session_id,
+            "camera_id": camera_id,
+            "source_kind": source_kind,
+            "source_frame_index": source_frame_index,
+            "source_timestamp_seconds": source_timestamp_seconds,
+            "capture_timestamp_seconds": capture_timestamp_seconds,
+            "source_ref": source_ref,
+            "source_fingerprint": source_fingerprint,
+            "source_fingerprint_kind": source_fingerprint_kind,
+            "synchronization_manifest_ref": synchronization_manifest_ref,
+            "synchronization_manifest_sha256": synchronization_manifest_sha256,
+            "pose_version_id": pose_version_id,
+            "image_width": image_width,
+            "image_height": image_height,
+        }
+        payload["frame_id"] = _stable_identity_digest(payload)
+        return cls.model_validate(payload)
+
+    @model_validator(mode="after")
+    def validate_frame_id(self) -> Self:
+        expected = _stable_identity_digest(
+            self.model_dump(mode="json", exclude={"frame_id"})
+        )
+        if self.frame_id != expected:
+            raise ValueError("frame_id does not match the immutable frame identity")
+        return self
+
+    def as_frame_ref(self) -> FrameRef:
+        """Convert to the existing model-worker frame reference."""
+
+        return FrameRef(
+            camera_id=self.camera_id,
+            frame_index=self.source_frame_index,
+            timestamp_seconds=self.capture_timestamp_seconds,
+            source_ref=self.source_ref,
+            image_width=self.image_width,
+            image_height=self.image_height,
+        )
+
+
+class FrameBundleStatus(StrEnum):
+    """Availability state for a synchronized multi-camera bundle."""
+
+    COMPLETE = "complete"
+    INCOMPLETE = "incomplete"
+
+
+class SynchronizedFrameBundle(ContractModel):
+    """Persistent capture-time bundle independent of worker completion order."""
+
+    schema_version: Literal[1] = 1
+    bundle_index: NonNegativeInt
+    bundle_id: Sha256Digest
+    capture_session_id: str
+    capture_timestamp_seconds: NonNegativeFloat
+    reference_camera_id: str
+    expected_camera_ids: tuple[str, ...]
+    frames: tuple[FrameIdentity, ...]
+    missing_camera_ids: tuple[str, ...]
+    status: FrameBundleStatus
+    pairing_tolerance_seconds: PositiveFloat
+    max_frame_time_difference_seconds: NonNegativeFloat
+    synchronization_manifest_ref: str
+    synchronization_manifest_sha256: Sha256Digest
+
+    @field_validator(
+        "capture_session_id",
+        "reference_camera_id",
+        "synchronization_manifest_ref",
+    )
+    @classmethod
+    def require_bundle_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("bundle text fields must not be empty")
+        if normalized != value:
+            raise ValueError("bundle text fields must not have outer whitespace")
+        return value
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        bundle_index: int,
+        capture_session_id: str,
+        capture_timestamp_seconds: float,
+        reference_camera_id: str,
+        expected_camera_ids: tuple[str, ...],
+        frames: tuple[FrameIdentity, ...],
+        pairing_tolerance_seconds: float,
+        synchronization_manifest_ref: str,
+        synchronization_manifest_sha256: str,
+    ) -> Self:
+        """Create and validate one deterministic frame bundle."""
+
+        present = {frame.camera_id for frame in frames}
+        missing = tuple(
+            camera_id for camera_id in expected_camera_ids if camera_id not in present
+        )
+        status = (
+            FrameBundleStatus.COMPLETE
+            if not missing
+            else FrameBundleStatus.INCOMPLETE
+        )
+        frame_times = [frame.capture_timestamp_seconds for frame in frames]
+        max_difference = (
+            float(max(frame_times) - min(frame_times)) if len(frame_times) > 1 else 0.0
+        )
+        payload: dict[str, Any] = {
+            "schema_version": 1,
+            "bundle_index": bundle_index,
+            "capture_session_id": capture_session_id,
+            "capture_timestamp_seconds": capture_timestamp_seconds,
+            "reference_camera_id": reference_camera_id,
+            "expected_camera_ids": expected_camera_ids,
+            "frames": frames,
+            "missing_camera_ids": missing,
+            "status": status,
+            "pairing_tolerance_seconds": pairing_tolerance_seconds,
+            "max_frame_time_difference_seconds": max_difference,
+            "synchronization_manifest_ref": synchronization_manifest_ref,
+            "synchronization_manifest_sha256": synchronization_manifest_sha256,
+        }
+        digest_payload = {
+            **payload,
+            "frames": [frame.frame_id for frame in frames],
+        }
+        payload["bundle_id"] = _stable_identity_digest(digest_payload)
+        return cls.model_validate(payload)
+
+    @model_validator(mode="after")
+    def validate_bundle_semantics(self) -> Self:
+        if not self.expected_camera_ids:
+            raise ValueError("expected_camera_ids must not be empty")
+        if len(set(self.expected_camera_ids)) != len(self.expected_camera_ids):
+            raise ValueError("expected_camera_ids must be unique")
+        if self.reference_camera_id not in self.expected_camera_ids:
+            raise ValueError("reference_camera_id must be expected")
+        if not self.frames:
+            raise ValueError("a frame bundle must contain at least one frame")
+
+        frame_camera_ids = tuple(frame.camera_id for frame in self.frames)
+        if len(set(frame_camera_ids)) != len(frame_camera_ids):
+            raise ValueError("a frame bundle cannot contain duplicate cameras")
+        if any(camera_id not in self.expected_camera_ids for camera_id in frame_camera_ids):
+            raise ValueError("bundle frame camera is not in expected_camera_ids")
+        expected_present_order = tuple(
+            camera_id
+            for camera_id in self.expected_camera_ids
+            if camera_id in set(frame_camera_ids)
+        )
+        if frame_camera_ids != expected_present_order:
+            raise ValueError("bundle frames must follow expected_camera_ids order")
+
+        expected_missing = tuple(
+            camera_id
+            for camera_id in self.expected_camera_ids
+            if camera_id not in set(frame_camera_ids)
+        )
+        if self.missing_camera_ids != expected_missing:
+            raise ValueError("missing_camera_ids does not match available frames")
+        expected_status = (
+            FrameBundleStatus.COMPLETE
+            if not expected_missing
+            else FrameBundleStatus.INCOMPLETE
+        )
+        if self.status is not expected_status:
+            raise ValueError("bundle status does not match missing cameras")
+
+        for frame in self.frames:
+            if frame.capture_session_id != self.capture_session_id:
+                raise ValueError("bundle frames must share capture_session_id")
+            if (
+                frame.synchronization_manifest_ref
+                != self.synchronization_manifest_ref
+                or frame.synchronization_manifest_sha256
+                != self.synchronization_manifest_sha256
+            ):
+                raise ValueError("bundle frames must share synchronization provenance")
+
+        frame_times = [frame.capture_timestamp_seconds for frame in self.frames]
+        expected_difference = (
+            float(max(frame_times) - min(frame_times)) if len(frame_times) > 1 else 0.0
+        )
+        if not math.isclose(
+            self.max_frame_time_difference_seconds,
+            expected_difference,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("max frame-time difference is inconsistent")
+        if self.max_frame_time_difference_seconds > self.pairing_tolerance_seconds:
+            raise ValueError("bundle exceeds the pairing tolerance")
+
+        reference_frames = [
+            frame
+            for frame in self.frames
+            if frame.camera_id == self.reference_camera_id
+        ]
+        expected_timestamp = (
+            reference_frames[0].capture_timestamp_seconds
+            if reference_frames
+            else min(frame_times)
+        )
+        if not math.isclose(
+            self.capture_timestamp_seconds,
+            expected_timestamp,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("bundle capture timestamp is inconsistent")
+
+        digest_payload = self.model_dump(
+            mode="json",
+            exclude={"bundle_id"},
+        )
+        digest_payload["frames"] = [frame.frame_id for frame in self.frames]
+        if self.bundle_id != _stable_identity_digest(digest_payload):
+            raise ValueError("bundle_id does not match the immutable bundle identity")
+        return self
 
 
 class CameraIntrinsics(ContractModel):

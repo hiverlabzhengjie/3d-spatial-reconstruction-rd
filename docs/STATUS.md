@@ -1,9 +1,9 @@
 # Project Status
 
-**Last updated:** 2026-07-28
+**Last updated:** 2026-07-31
 **Overall phase:** Implementation
-**Current stage:** S00 - Project Setup and MPS Model Gate
-**Stage state:** Complete - all four completion gates passed
+**Current stage:** S01 - Capture, Synchronization, and Calibration
+**Stage state:** Complete - S01 completion gate passed; S02 awaits explicit user request
 
 ## Completed
 
@@ -118,13 +118,166 @@
     scheduling will share bounded queues and the same provenance contracts;
   - implementation is assigned incrementally to S01 and S03-S07 without
     reopening S00.
+- Began S01 physical-input preparation:
+  - confirmed two labelled iPhone 16 Pro Max cameras using fixed
+    1080p/30 FPS recording and their 13 mm-equivalent ultrawide lenses;
+  - accepted the two stable temporary mounts for the prototype;
+  - generated and verified the canonical A4 ChArUco target
+    `s01-charuco-6x8-30mm-5x5-100-v1`;
+  - printed, dimension-checked, and mounted the ChArUco target on rigid matte
+    backing;
+  - reviewed the two-camera floor-marker placement trial and accepted the
+    corrected four-position layout;
+  - confirmed both replacement trial clips decode at 1920x1080 and
+    approximately 30 FPS;
+  - generated and verified the canonical 180 mm floor-marker set
+    `s01-floor-markers-40-43-180mm-5x5-100-v1`;
+  - accepted manually measured floor-marker centres with stated
+    `+/-0.05 m` accuracy: M40 `(0.00, 0.00, 0.00)`, M41
+    `(1.23, 0.45, 0.00)`, M42 `(0.00, 2.20, 0.00)`, and M43
+    `(1.10, 3.70, 0.00)` metres;
+  - accepted the shared Camera A/B intrinsic-calibration capture at 1920x1080
+    and approximately 30 FPS: 25 distinct steady candidates covered the image,
+    and a provisional standard OpenCV calibration produced `0.280 px` RMS
+    reprojection error;
+  - adopted D021 to use the shared numeric intrinsic estimate for both matched
+    iPhone 16 Pro Max cameras, subject to Camera B world-marker reprojection
+    validation and an independent-calibration fallback;
+  - accepted the raw fixed-world-pose calibration pair and preserved both
+    recordings unchanged under the S01 capture session;
+  - synchronized the derived Camera A/B world-pose clips from their start and
+    end claps, correcting the measured `293 ppm` relative clock drift; the
+    residual disagreement is `0.021 ms` at the start and `12.271 ms` at the
+    end, below one 30 FPS frame;
+  - confirmed all four floor-marker IDs in Camera A and complete IDs M40-M42
+    in Camera B. Camera B's clipped M43 is accepted for pose solving because
+    the three complete non-collinear markers provide twelve image corners;
+  - estimated fixed camera poses from M40-M42 over deterministic samples of
+    the synchronized recordings:
+    - Camera A centre is approximately `(0.131, 3.999, 2.151) m`, with
+      `1.527 px` aggregate reprojection RMS;
+    - Camera B centre is approximately `(2.176, 3.670, 2.201) m`, with
+      `1.481 px` aggregate reprojection RMS;
+  - verified that both cameras' sampled-corner error, per-frame pose stability,
+    height, downward optical axis, and floor-intersection checks pass;
+  - accepted Camera B's shared intrinsic estimate under D021 because its
+    world-marker reprojection is comparable to Camera A's;
+  - adopted D022 to use common markers M40-M42 and retain M43 as an excluded
+    failed diagnostic: Camera A's M43 observation disagrees with its recorded
+    centre by `100.044 px` RMS and its coordinate was not rewritten from the
+    imagery;
+  - synchronized the empty-room recording pair with `0.667 ms` start and
+    `0.583 ms` end clap residuals, equal 1,220-frame outputs, and corrected
+    `12.389 ppm` relative drift;
+  - reviewed the empty-room content and restricted candidate static imagery to
+    synchronized time `22.0-38.0 s`: the operator is still visible during the
+    setup portion at 10-18 seconds;
+  - confirmed that the blue bed pickup circle, white floor drop-off circle,
+    and M40-M42 are visible in both empty-room views;
+  - found that direct fixed-pose carryover exceeds the existing `5 px`
+    reprojection threshold (`10.032 px` p95 for Camera A and `6.853 px` for
+    Camera B), although an empty-room refit remains internally strong at
+    `1.294 px` and `1.137 px` RMS with only small centre/orientation changes;
+  - adopted D023 to retain the original world-pose calibration as the physical
+    reference while allowing versioned per-recording corrections from
+    stationary M40-M42 under strict reprojection and reference-difference
+    limits;
+  - accepted empty-room pose version
+    `s01_capture_20260729:empty_room:v1`:
+    - Camera A centre `(0.129, 4.002, 2.160) m`, `1.403 px` marker RMS,
+      `0.009 m` and `0.574 deg` from the reference;
+    - Camera B centre `(2.183, 3.672, 2.206) m`, `1.146 px` marker RMS,
+      `0.010 m` and `0.342 deg` from the reference;
+  - verified that the corrected empty-room poses pass all marker, stability,
+    frustum, and D023 reference-difference checks.
+  - adopted D024 to estimate the two approximately `0.30 m` radius zones from
+    the synchronized empty-room views, treating each visible blue/white rope
+    as a thin boundary centreline rather than a filled colour region;
+  - generated provisional video-estimated zone metadata using empty-room pose
+    version `s01_capture_20260729:empty_room:v1`:
+    - blue bed pickup-zone centre `(1.736, 2.815, 0.599) m`, with Camera A/B
+      ring-boundary RMS of `8.845 px` and `4.632 px`;
+    - white floor drop-off-zone centre `(0.338, 0.592, 0.000) m`, with Camera
+      A/B ring-boundary RMS of `9.873 px` and `9.447 px`;
+  - verified the declared room bounds, positive projections, the `10 px`
+    per-camera boundary threshold, and `0.102 m` independent Camera A/B
+    floor-centre disagreement against the `0.15 m` limit;
+  - retained annotated Camera A/B overlays and labelled both results
+    `video_estimated`;
+  - received user visual/sanity validation on `2026-07-31` that both estimated
+    positions and the approximately `0.60 m` bed-zone height are physically
+    sensible, accepting the two zones as S01 metadata while preserving their
+    non-surveyed provenance.
+  - reviewed both raw pickup-carry-place takes and selected
+    `action_take_01`:
+    - it contains the complete intended action in both camera views;
+    - the backpack begins in the blue pickup zone and ends at the white
+      drop-off zone;
+    - its start/end synchronization claps are stronger and less ambiguous than
+      the retained backup take;
+  - synchronized the preferred dynamic pair with one second of context around
+    both clap anchors and corrected the measured `123.430 ppm` relative drift:
+    - both derived outputs contain `1,047` decoded frames;
+    - residual clap disagreement is `2.375 ms` at the start and `5.854 ms` at
+      the end, below one 30 FPS frame;
+    - the retained six-time pair preview is visually synchronized;
+  - accepted action pose version
+    `s01_capture_20260729:action_take_01:v1` under D023:
+    - Camera A centre `(0.127, 3.991, 2.134) m`, `1.417 px` marker RMS,
+      `0.019 m` and `0.834 deg` from the fixed reference;
+    - Camera B centre `(2.177, 3.661, 2.199) m`, `1.275 px` marker RMS,
+      `0.009 m` and `0.420 deg` from the fixed reference;
+  - verified the action poses pass marker reprojection, sampled-error, pose
+    stability, camera-frustum, and D023 reference-difference checks.
+  - added immutable `FrameIdentity` and `SynchronizedFrameBundle` contracts
+    whose deterministic IDs include capture session, camera/frame source,
+    source and capture timestamps, source fingerprint, synchronization
+    manifest, and capture-specific pose provenance;
+  - added PyAV-backed file and RTSP frame-source implementations:
+    - local files are content-hash checked before decode;
+    - RTSP uses the same protocol and timestamp transform while persistent
+      references exclude credentials and query values;
+  - added deterministic earliest-unconsumed capture-time bundling with a
+    half-frame (`1/60 s`) tolerance, explicit incomplete/missing-camera state,
+    and rejection of duplicate/non-monotonic frames or mixed provenance;
+  - verified real same-input replay twice for both accepted downstream pairs:
+    - empty room: `1,220` complete bundles, zero missing, maximum
+      inter-camera time difference `3.333 ms`;
+    - preferred action: `1,047` complete bundles, zero missing, maximum
+      inter-camera time difference `6.667 ms`;
+    - both ordered bundle-ID digests reproduce exactly and reverse simulated
+      worker completion restores authoritative capture order;
+  - verified immutable real 1920x1080 BGR pixel delivery and persistent schema
+    round trips;
+  - added explicit automated failure tests for missing cameras, duplicate and
+    non-monotonic frames, mixed synchronization provenance, tampered IDs,
+    duplicate/unknown worker results, and credential-safe RTSP references;
+  - recorded local capture notes plus conservative approximate room/zone
+    metadata. The processing bounds are `(-0.5, -0.5, 0.0)` to
+    `(3.0, 4.5, 3.0) m` and are not represented as surveyed walls/ceiling.
 
 ## Current Blockers and Unknowns
 
 - No S00 completion-gate blocker remains.
-- No living-room calibration images or synchronized action videos are present.
-- ChArUco board dimensions, floor markers, room axes, and zones are not yet
-  defined.
+- The fixed-world-pose, empty-room, and preferred dynamic action pairs are
+  synchronized. The backup action pair remains unchanged and available but is
+  not selected for baseline processing.
+- The two iPhone 16 Pro Max cameras, fixed 1080p/30 FPS recording setup,
+  selected 13 mm-equivalent ultrawide lenses, and stable mounts are confirmed.
+- The canonical A4 ChArUco board is physically ready.
+- Floor-marker identities, size, axis orientation, and manually measured
+  coordinates are defined with `+/-0.05 m` uncertainty; their placement and
+  both camera mounts must remain unchanged through the remaining captures.
+- The shared Camera A/B intrinsic-calibration capture and both fixed camera
+  poses are accepted. Camera B passed its required marker-reprojection check.
+- M43 is excluded from pose fitting under D022; its recorded centre should be
+  remeasured if later geometry reveals a material world-alignment problem.
+- The empty-room pair is synchronized and its D023 capture-specific pose
+  version is accepted for the declared stable interval.
+- Pickup and drop-off zone estimates are accepted as video-estimated metadata.
+- The preferred dynamic pair and its D023 capture-specific pose correction are
+  accepted.
+- No S01 completion-gate blocker remains.
 
 ## Available Software Inputs
 
@@ -138,18 +291,20 @@
 
 ## Available or Planned Physical Inputs
 
-- Two fixed phone cameras: planned
-- Stable mounts/tripods: not yet confirmed
-- ChArUco board: not yet prepared
-- Printed floor markers: not yet prepared
-- Tape measurements: not yet recorded
+- Two fixed phone cameras: confirmed
+- Stable mounts/tripods: confirmed for the prototype
+- ChArUco board: printed, dimension-checked, mounted, and ready
+- Printed floor markers: printed, positioned, and visible in world-pose capture
+- Tape measurements: marker centres recorded with stated `+/-0.05 m` accuracy
 - Target backpack: planned
-- Empty-room recording: not yet captured
-- Pickup-carry-place recording: not yet captured
+- Empty-room recording: captured, synchronized, and restricted to a stable
+  `22.0-38.0 s` candidate interval
+- Pickup-carry-place recording: preferred take synchronized and accepted;
+  backup raw take retained unchanged
 - Representative room-view image: supplied and used for WP6
 
 ## Exact Next Action
 
-After explicit user approval to begin S01, inventory the two phone/lens
-configurations and confirm rigid mounts plus the printed ChArUco board's exact
-dimensions before recording any calibration session.
+After explicit user approval to begin S02, select deterministic synchronized
+empty-room keyframe bundles only from `22.0-38.0 s` and run the first
+pose-conditioned DA3 metric-depth reconstruction at process resolution `504`.
