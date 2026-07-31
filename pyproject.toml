@@ -29,6 +29,9 @@ dependencies = [
     "pydantic>=2.10,<3",
     "pydantic-settings>=2.7,<3",
     "pyyaml>=6,<7",
+    # Rerun 0.23+ requires NumPy 2. Keep the latest 0.22 patch compatible
+    # with this DA3/Ultralytics NumPy 1.x environment.
+    "rerun-sdk==0.22.1",
     "safetensors>=0.5,<1",
     "torch>=2.7,<3",
     "torchvision>=0.22,<1",

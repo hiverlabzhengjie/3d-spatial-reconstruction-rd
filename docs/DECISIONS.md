@@ -472,3 +472,42 @@ If the views disagree materially or the rope cannot be annotated reliably, the
 estimate remains unaccepted and the fallback is physical measurement or a
 clearer zone capture. Inferred values remain explicitly labelled
 video-estimated rather than surveyed.
+
+## D025 - Marker-anchored scalar correction for S02 static depth
+
+**Date:** 2026-07-31
+**Status:** Active
+
+The first calibrated S02 run used raw pose-conditioned DA3 metric depth at
+process resolution `504`. Its scene structure was visually coherent, but both
+cameras placed the known floor approximately `0.23 m` above world `Z=0`.
+At the projected centres of accepted markers M40-M42, raw DA3 depth
+underestimated the expected calibrated camera-Z depths by approximately
+`14-16%` in both views.
+
+For S02 static geometry only, derive one shared scalar depth correction per
+synchronized DA3 pair from the median of:
+
+```text
+expected calibrated camera-Z depth / raw DA3 depth
+```
+
+at the projected M40-M42 centres in both cameras. A shared scalar preserves the
+relative scale between the two views. Accept it only when all six marker ratios
+are finite, positive, and remain within `5%` relative deviation of their
+median. M43 remains excluded under D022.
+
+This is a bounded supporting calibration operation under D015. It uses the
+existing OpenCV/NumPy stack and adds no model, dependency, or independent
+reconstruction pipeline. It may influence only the derived S02 static point
+cloud and geometry preview. It may not alter raw DA3 depth/confidence,
+intrinsics, camera poses, marker coordinates, frame identity, timestamps, or
+S04 dynamic localization. Raw and corrected depth plus all scale observations
+must remain separately inspectable.
+
+The correction is isolated behind an explicit processing option, has synthetic
+recovery and disagreement-rejection tests, and can be removed by disabling the
+option. If the six ratios disagree beyond the limit, the run must stop instead
+of applying a partial or camera-specific correction. This decision makes no
+survey-grade accuracy claim; marker centres retain their stated
+`+/-0.05 m` uncertainty.

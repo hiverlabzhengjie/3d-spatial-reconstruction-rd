@@ -2,8 +2,8 @@
 
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
-**Current stage:** S01 - Capture, Synchronization, and Calibration
-**Stage state:** Complete - S01 completion gate passed; S02 awaits explicit user request
+**Current stage:** S02 - DA3 Static Room Geometry
+**Stage state:** Complete - completion gate passed; stage-close provenance pending
 
 ## Completed
 
@@ -258,6 +258,35 @@
   - closed S01 with commit
     `9d2bb08778c3a6fe014c8e300ab511d9dafa6b4a`, pushed it to `origin/main`,
     and verified the remote branch resolved to that exact commit.
+- Completed S02 static room geometry:
+  - added deterministic accepted-window keyframe selection, confidence/depth/
+    bounds filtering, marker-scale diagnostics, metric back-projection,
+    deterministic voxel fusion, colored PLY output, and strict persistent
+    summary contracts;
+  - ran exact DA3 Nested 1.1 pose-conditioned two-camera inference on native
+    Apple MPS at synchronized times `22.010`, `30.013`, and `37.983 s`, with
+    no CPU fallback;
+  - preserved raw depth/confidence and immutable source/model/calibration
+    provenance for all three pairs;
+  - adopted D025 after the raw calibrated run exposed a consistent `14-16%`
+    marker-depth underestimate in both views, applying only a bounded shared
+    scalar to derived S02 static geometry while leaving raw DA3 output
+    unchanged;
+  - accepted scales `1.164240`, `1.157371`, and `1.157654`, with `1.606%`
+    maximum observation deviation against the `5%` rejection limit;
+  - retained Camera A/B clouds with `30,239` and `22,332` points and a
+    `45,919`-point fused static scene;
+  - measured bidirectional `0.10 m` shared-surface overlap of `69.295%` and
+    `86.638%`, with all accepted points finite and inside the declared bounds;
+  - visually verified recognizable living-room geometry plus both calibrated
+    cameras, markers, bounds, and zones in the accepted Rerun recording;
+  - produced schema-validated run, Rerun, and verification evidence, including
+    a retained Rerun viewer capture;
+  - passed `141` automated tests, Ruff, strict mypy, lockfile/environment,
+    Rerun-structure, artifact-hash, and whitespace checks;
+  - recorded exact evidence in
+    `docs/stages/S02_DA3_STATIC_GEOMETRY.md` and
+    `docs/stages/S02_HANDOFF.md`.
 
 ## Current Blockers and Unknowns
 
@@ -281,6 +310,7 @@
 - The preferred dynamic pair and its D023 capture-specific pose correction are
   accepted.
 - No S01 completion-gate blocker remains.
+- No S02 completion-gate blocker remains.
 
 ## Available Software Inputs
 
@@ -308,6 +338,5 @@
 
 ## Exact Next Action
 
-After explicit user approval to begin S02, select deterministic synchronized
-empty-room keyframe bundles only from `22.0-38.0 s` and run the first
-pose-conditioned DA3 metric-depth reconstruction at process resolution `504`.
+Complete and verify the S02 stage-close Git provenance, then stop. Do not begin
+S03 person/backpack perception until the user explicitly requests it.
