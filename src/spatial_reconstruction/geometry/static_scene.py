@@ -292,6 +292,7 @@ class PointFilteringStats:
     valid_depth_count: int
     finite_confidence_count: int
     confidence_retained_count: int
+    supplemental_confidence_retained_count: int
     room_bounds_retained_count: int
 
 
@@ -615,8 +616,10 @@ def backproject_static_depth(
     pose: CameraPose,
     confidence_threshold: float,
     room_bounds: AxisAlignedBounds,
+    supplemental_confidence_threshold: float | None = None,
+    supplemental_world_bounds: AxisAlignedBounds | None = None,
 ) -> ColoredPointCloud:
-    """Back-project valid confident depth into the calibrated world frame."""
+    """Back-project confident depth plus an optional bounded low-confidence region."""
 
     depth = np.asarray(depth_m, dtype=np.float64)
     scores = np.asarray(confidence, dtype=np.float64)
@@ -629,6 +632,19 @@ def backproject_static_depth(
         raise ValueError("processed colors must be uint8 RGB matching depth dimensions")
     if not math.isfinite(confidence_threshold):
         raise ValueError("confidence threshold must be finite")
+    if (supplemental_confidence_threshold is None) != (
+        supplemental_world_bounds is None
+    ):
+        raise ValueError(
+            "supplemental confidence threshold and world bounds must be provided together"
+        )
+    if supplemental_confidence_threshold is not None:
+        if not math.isfinite(supplemental_confidence_threshold):
+            raise ValueError("supplemental confidence threshold must be finite")
+        if supplemental_confidence_threshold > confidence_threshold:
+            raise ValueError(
+                "supplemental confidence threshold must not exceed the baseline"
+            )
     if intrinsics.image_width != depth.shape[1] or intrinsics.image_height != depth.shape[0]:
         raise ValueError("processed intrinsics dimensions must match depth")
     if intrinsics.camera_id != pose.camera_id:
@@ -636,8 +652,13 @@ def backproject_static_depth(
 
     valid_depth = np.isfinite(depth) & (depth > 0)
     finite_confidence = np.isfinite(scores)
-    confident = valid_depth & finite_confidence & (scores >= confidence_threshold)
-    y_pixels, x_pixels = np.nonzero(confident)
+    candidate_threshold = (
+        confidence_threshold
+        if supplemental_confidence_threshold is None
+        else supplemental_confidence_threshold
+    )
+    candidate = valid_depth & finite_confidence & (scores >= candidate_threshold)
+    y_pixels, x_pixels = np.nonzero(candidate)
     if x_pixels.size == 0:
         return ColoredPointCloud(
             points_world_m=np.empty((0, 3), dtype=np.float64),
@@ -647,6 +668,7 @@ def backproject_static_depth(
                 valid_depth_count=int(np.count_nonzero(valid_depth)),
                 finite_confidence_count=int(np.count_nonzero(finite_confidence)),
                 confidence_retained_count=0,
+                supplemental_confidence_retained_count=0,
                 room_bounds_retained_count=0,
             ),
         )
@@ -654,19 +676,35 @@ def backproject_static_depth(
     pixels_uv = np.column_stack((x_pixels, y_pixels)).astype(np.float64)
     points_camera = backproject_pixels(
         pixels_uv,
-        depth[confident],
+        depth[candidate],
         intrinsics=intrinsics,
     )
     points_world = camera_points_to_world(points_camera, pose=pose)
-    in_bounds = room_bounds.contains(points_world)
+    candidate_scores = scores[candidate]
+    baseline_confident = candidate_scores >= confidence_threshold
+    supplemental_confident = np.zeros_like(baseline_confident)
+    if (
+        supplemental_confidence_threshold is not None
+        and supplemental_world_bounds is not None
+    ):
+        supplemental_confident = (
+            (candidate_scores >= supplemental_confidence_threshold)
+            & ~baseline_confident
+            & supplemental_world_bounds.contains(points_world)
+        )
+    confidence_retained = baseline_confident | supplemental_confident
+    in_bounds = confidence_retained & room_bounds.contains(points_world)
     return ColoredPointCloud(
         points_world_m=np.asarray(points_world[in_bounds], dtype=np.float64),
-        colors_rgb=np.asarray(colors[confident][in_bounds], dtype=np.uint8),
+        colors_rgb=np.asarray(colors[candidate][in_bounds], dtype=np.uint8),
         stats=PointFilteringStats(
             total_pixel_count=int(depth.size),
             valid_depth_count=int(np.count_nonzero(valid_depth)),
             finite_confidence_count=int(np.count_nonzero(finite_confidence)),
-            confidence_retained_count=int(np.count_nonzero(confident)),
+            confidence_retained_count=int(np.count_nonzero(confidence_retained)),
+            supplemental_confidence_retained_count=int(
+                np.count_nonzero(supplemental_confident)
+            ),
             room_bounds_retained_count=int(np.count_nonzero(in_bounds)),
         ),
     )

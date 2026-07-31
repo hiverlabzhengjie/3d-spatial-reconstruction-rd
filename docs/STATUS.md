@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
 **Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - D026 revision pushed and remotely verified
+**Stage state:** Complete - D027 door-inclusion gate passed; version-control close pending
 
 ## Completed
 
@@ -286,11 +286,22 @@
   - measured revised bidirectional `0.10 m` shared-surface overlap of `72.152%`
     and `85.000%`, with all accepted points finite and inside the unchanged
     declared bounds;
+  - after a second user review, confirmed the door behind M40 had valid
+    in-bounds depth but confidence below p20 in both cameras;
+  - adopted D027 for the one-time static scene: p5 samples may supplement only
+    the video-estimated door volume `(-0.35, -0.40, 0.00)` to
+    `(0.90, -0.12, 2.10) m`; S03/S04 remain unaffected;
+  - retained `18,930` Camera A and `9,426` Camera B supplemental samples,
+    producing revised Camera A/B clouds of `52,006` and `43,561` points and an
+    `81,709`-point fused scene;
+  - verified `10,126` fused points in the door volume, including `3,719` in
+    the Rerun visualization sample, with revised bidirectional overlap of
+    `73.363%` and `86.297%`;
   - visually verified recognizable living-room geometry plus both calibrated
     cameras, markers, bounds, and zones in the accepted Rerun recording;
   - produced schema-validated run, Rerun, and verification evidence, including
     a retained Rerun viewer capture;
-  - passed `141` automated tests, Ruff, strict mypy, lockfile/environment,
+  - passed `143` automated tests, Ruff, strict mypy, lockfile/environment,
     Rerun-structure, artifact-hash, and whitespace checks;
   - recorded exact evidence in
     `docs/stages/S02_DA3_STATIC_GEOMETRY.md` and
@@ -352,5 +363,6 @@
 
 ## Exact Next Action
 
-Stop. Do not begin S03 person/backpack perception until the user explicitly
-requests it.
+Commit and push the verified D027 S02 door-inclusive revision, confirm
+`origin/main` resolves to it, record the revision provenance, then stop. Do not
+begin S03.

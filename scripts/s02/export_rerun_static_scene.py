@@ -311,6 +311,15 @@ def main() -> int:
             ),
             "accepted M40-M42 anchors",
             "conservative processing bounds",
+            *(
+                ["bounded D027 low-confidence static door supplement"]
+                if bool(
+                    cast(dict[str, Any], summary["processing"])
+                    .get("static_inclusion", {})
+                    .get("enabled", False)
+                )
+                else []
+            ),
             "pickup and drop-off zone rings",
         ],
     }

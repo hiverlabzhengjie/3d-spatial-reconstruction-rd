@@ -539,3 +539,32 @@ localization. Preserve the prior `40th`-percentile artifacts as a baseline,
 write the revised run to a new artifact directory, and re-run finite-value,
 bounds, cross-camera overlap, schema, hash, and visual Rerun verification
 before re-closing S02.
+
+## D027 - Bounded low-confidence supplement for the static room door
+
+**Date:** 2026-07-31
+**Status:** Active
+
+User inspection of the D026 Rerun scene showed that the room door behind M40
+was still effectively absent even though it is visible in both accepted source
+views. Raw-prediction diagnostics confirmed valid metric depth inside the
+existing room bounds. The door-region median confidence was approximately
+`4.5-4.9`, while the D026 per-pair `20th`-percentile thresholds were
+approximately `5.1-5.8`. Camera B retained no door-volume samples at that
+threshold and Camera A retained only sparse fragments.
+
+Keep the global D026 `20th`-percentile filter unchanged. For the one-time
+derived S02 static reconstruction only, additionally retain finite points at
+or above the per-pair `5th` confidence percentile when their reconstructed
+world positions fall inside the door inclusion volume
+`(-0.35, -0.40, 0.00)` to `(0.90, -0.12, 2.10) m`. The inclusion volume is a
+video-estimated processing region rather than surveyed door geometry and
+remains wholly inside the existing room bounds.
+
+This bounded supplement may affect only derived S02 static point clouds and
+their previews/Rerun export. It must not alter raw DA3 outputs, D025 scaling,
+camera calibration, source identity, the global room bounds, S03 perception,
+or S04 dynamic localization. Persist the supplemental threshold, volume, and
+retained-point counts; test that unpaired or unbounded supplemental policies
+fail; and re-run overlap, finite-value, room-bound, artifact-integrity, and
+visual Rerun checks before accepting the result.

@@ -40,6 +40,7 @@ class StaticSceneVerificationReport(ContractModel):
     point_counts: dict[str, int]
     cross_camera_overlap: dict[str, float]
     marker_scale_diagnostics: dict[str, float]
+    static_inclusion_diagnostics: dict[str, Any]
     world_extent_m: dict[str, tuple[float, float, float]]
     automated_gate_checks: dict[str, bool]
     limitations: tuple[str, ...]
@@ -149,6 +150,93 @@ def main() -> int:
         np.all(actual_minimum >= bounds_minimum)
         and np.all(actual_maximum <= bounds_maximum)
     )
+    static_inclusion = cast(
+        dict[str, Any],
+        processing.get("static_inclusion", {"enabled": False}),
+    )
+    static_inclusion_diagnostics: dict[str, Any] = {
+        "enabled": bool(static_inclusion.get("enabled", False))
+    }
+    static_inclusion_checks: dict[str, bool] = {}
+    if static_inclusion_diagnostics["enabled"]:
+        inclusion_minimum = np.asarray(
+            static_inclusion["minimum_world_xyz_m"],
+            dtype=np.float64,
+        )
+        inclusion_maximum = np.asarray(
+            static_inclusion["maximum_world_xyz_m"],
+            dtype=np.float64,
+        )
+        inclusion_policy_valid = bool(
+            inclusion_minimum.shape == (3,)
+            and inclusion_maximum.shape == (3,)
+            and np.isfinite(inclusion_minimum).all()
+            and np.isfinite(inclusion_maximum).all()
+            and np.all(inclusion_maximum > inclusion_minimum)
+            and np.all(inclusion_minimum >= bounds_minimum)
+            and np.all(inclusion_maximum <= bounds_maximum)
+            and float(static_inclusion["confidence_percentile"])
+            < float(cast(dict[str, Any], processing["confidence_filter"])["percentile"])
+        )
+        supplemental_counts = {
+            camera_id: sum(
+                int(
+                    cast(
+                        dict[str, Any],
+                        prediction.cameras[camera_id]["filtering"],
+                    )["supplemental_confidence_retained_count"]
+                )
+                for prediction in summary.predictions
+            )
+            for camera_id in CAMERA_IDS
+        }
+        in_static_inclusion = np.all(
+            (fused_points >= inclusion_minimum)
+            & (fused_points <= inclusion_maximum),
+            axis=1,
+        )
+        fused_inclusion_count = int(np.count_nonzero(in_static_inclusion))
+        logged_fused_count = int(rerun_summary.logged_fused_point_count)
+        if fused_points.shape[0] <= logged_fused_count:
+            logged_fused_points = fused_points
+        else:
+            logged_indices = np.linspace(
+                0,
+                fused_points.shape[0] - 1,
+                num=logged_fused_count,
+                dtype=np.int64,
+            )
+            logged_fused_points = fused_points[logged_indices]
+        logged_inclusion_count = int(
+            np.count_nonzero(
+                np.all(
+                    (logged_fused_points >= inclusion_minimum)
+                    & (logged_fused_points <= inclusion_maximum),
+                    axis=1,
+                )
+            )
+        )
+        static_inclusion_diagnostics.update(
+            {
+                "decision": str(static_inclusion["decision"]),
+                "confidence_percentile": float(
+                    static_inclusion["confidence_percentile"]
+                ),
+                "minimum_world_xyz_m": inclusion_minimum.tolist(),
+                "maximum_world_xyz_m": inclusion_maximum.tolist(),
+                "supplemental_retained_counts": supplemental_counts,
+                "fused_points_in_volume": fused_inclusion_count,
+                "logged_fused_points_in_volume": logged_inclusion_count,
+            }
+        )
+        static_inclusion_checks = {
+            "static_inclusion_policy_valid": inclusion_policy_valid,
+            "static_inclusion_retained_from_both_cameras": all(
+                count > 0 for count in supplemental_counts.values()
+            ),
+            "static_inclusion_present_in_fused_cloud": fused_inclusion_count > 0,
+            "static_inclusion_survives_rerun_sampling": logged_inclusion_count > 0,
+        }
 
     scales: list[float] = []
     marker_errors_m: list[float] = []
@@ -185,6 +273,7 @@ def main() -> int:
         "rerun_contains_both_cameras": set(rerun_summary.logged_camera_ids)
         == set(CAMERA_IDS),
         "rerun_visual_evidence_present": screenshot_path.stat().st_size > 0,
+        **static_inclusion_checks,
     }
     if not all(automated_gate_checks.values()):
         failed = [
@@ -237,6 +326,7 @@ def main() -> int:
             ),
             "maximum_corrected_marker_depth_error_m": max(marker_errors_m),
         },
+        static_inclusion_diagnostics=static_inclusion_diagnostics,
         world_extent_m={
             "minimum": (
                 float(actual_minimum[0]),

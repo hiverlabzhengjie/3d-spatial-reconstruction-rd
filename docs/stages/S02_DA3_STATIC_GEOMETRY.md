@@ -77,19 +77,19 @@ The accepted run selected the complete synchronized bundles nearest `22.0`,
 | `30.0 s` | `30.013333 s` | `900` | `3.333 ms` |
 | `38.0 s` | `37.983333 s` | `1139` | `3.333 ms` |
 
-The final completeness revision loaded the model once on native Apple MPS in
-`34.144 s`. Pair inference took `15.812 s`, `10.879 s`, and `10.871 s`; there
-was no CPU fallback. Raw depth,
+The final door-inclusive revision loaded the model once on native Apple MPS in
+`9.244 s`. Pair inference took `2.085 s`, `1.530 s`, and `1.499 s`; there was
+no CPU fallback. Raw depth,
 confidence, processed RGB, immutable source identities, timestamps, and
 retained keyframes remain inspectable for every prediction.
 
 D025 produced one shared two-camera scale per bundle:
 
-- `22.010000 s`: `1.164252`;
-- `30.013333 s`: `1.157365`;
-- `37.983333 s`: `1.157682`.
+- `22.010000 s`: `1.164136`;
+- `30.013333 s`: `1.157311`;
+- `37.983333 s`: `1.157667`.
 
-The scale range across the stable interval is `0.006887`. The maximum
+The scale range across the stable interval is `0.006825`. The maximum
 single-observation relative deviation is `1.606%`, below the `5%` rejection
 limit. Across all eighteen M40-M42 observations, corrected marker camera-depth
 error is `0.020 m` median and `0.054 m` maximum.
@@ -103,22 +103,32 @@ surfaces. Under D026 the user selected the `20th`-percentile variant with the
 original `Z >= 0` floor clip; the evaluated `Z >= -0.1 m` variant was rejected
 because it introduced a below-floor sheet.
 
-After the approved confidence, finite-depth, unchanged room-bound, and
-`0.02 m` voxel filtering, the accepted completeness revision contains:
+The D026 completeness revision contained Camera A/B/fused clouds of `43,978`,
+`38,874`, and `71,613` points. A second user inspection showed that the door
+behind M40 remained absent. Raw diagnostics found valid in-bounds door depth,
+but the door-region median confidence was approximately `4.5-4.9`, below the
+per-pair p20 thresholds of approximately `5.1-5.8`. Camera B retained no
+door-volume samples and Camera A retained only sparse fragments.
 
-- Camera A: `43,978` points;
-- Camera B: `38,874` points;
-- fused: `71,613` points.
+Under D027, the global p20 filter and original room bounds remain unchanged.
+Only the video-estimated door volume `(-0.35, -0.40, 0.00)` to
+`(0.90, -0.12, 2.10) m` may additionally retain finite p5 samples. Across the
+three pairs this added `18,930` Camera A and `9,426` Camera B samples before
+voxelization. The accepted door-inclusive point clouds contain:
 
-The fused extent is approximately `(-0.385, -0.322, 0.000)` to
+- Camera A: `52,006` points;
+- Camera B: `43,561` points;
+- fused: `81,709` points.
+
+The fused extent is approximately `(-0.385, -0.330, 0.000)` to
 `(2.841, 4.152, 2.004) m`, wholly inside the unchanged processing bounds.
 
 ## Cross-Camera and Visual QA
 
 An exact spatial-hash radius check on the retained per-camera PLY files found:
 
-- `72.152%` of Camera A points within `0.10 m` of Camera B;
-- `85.000%` of Camera B points within `0.10 m` of Camera A.
+- `73.363%` of Camera A points within `0.10 m` of Camera B;
+- `86.297%` of Camera B points within `0.10 m` of Camera A.
 
 Both exceed the recorded `65%` minimum for shared visible surfaces. The
 asymmetry is expected because Camera A sees surfaces outside Camera B's useful
@@ -128,8 +138,11 @@ The geometry PNG and GLB show a recognizable living room with the bed,
 floor/wall structure, and furniture in one Z-up metric frame. The Rerun
 recording displays the fused and sampled per-camera clouds with both calibrated
 camera transforms/pinholes, representative images, M40-M42, processing bounds,
-and pickup/drop-off rings. The accepted local web-viewer capture rendered
-without errors. Rerun 0.22.1's native `--screenshot-to` path triggered a
+and pickup/drop-off rings. The D027 door volume contains `10,126` fused
+points, of which `3,719` survive the bounded Rerun visualization sampling. The
+door plane and frame are visible behind M40 in the geometry and Rerun views.
+The accepted local web-viewer capture rendered without errors. Rerun 0.22.1's
+native `--screenshot-to` path triggered a
 Retina/Metal off-screen texture-limit error; this did not affect the normal
 native viewer, local web viewer, `.rrd` structure, or geometry. The diagnostic
 capture therefore uses Rerun's localhost-only web viewer.
@@ -138,7 +151,7 @@ capture therefore uses Rerun's localhost-only web viewer.
 
 The accepted artifact directory is:
 
-`artifacts/s02/completeness_accepted_v2_20260731/`
+`artifacts/s02/door_inclusive_candidate_20260731/`
 
 Important outputs:
 
@@ -151,12 +164,14 @@ Important outputs:
 - `static_scene.ply` - accepted fused geometry;
 - `previews/static_scene_geometry.png`;
 - `previews/static_scene_with_cameras.glb`;
-- `static_scene_accepted.rrd`;
-- `static_scene_accepted_export_summary.json`;
-- `previews/rerun_static_scene_accepted.png`;
-- `verification.json` - schema-validated hashes and automated gate evidence.
+- `static_scene_door_inclusive_v2.rrd`;
+- `static_scene_door_inclusive_v2_export_summary.json`;
+- `previews/rerun_static_scene_door_inclusive.png`;
+- `verification_v3.json` - schema-validated hashes and automated gate evidence.
 
-The prior `40th`-percentile baseline remains under
+The prior p20 completeness revision remains under
+`artifacts/s02/completeness_accepted_v2_20260731/`; the prior
+`40th`-percentile baseline remains under
 `artifacts/s02/candidate_three_keyframes_20260731/`. The raw uncorrected
 diagnostic remains under
 `artifacts/s02/first_calibrated_20260731/`; the corrected single-pair
@@ -168,26 +183,28 @@ diagnostic remains under `artifacts/s02/corrected_calibrated_20260731/`.
 .venv/bin/python scripts/s02/reconstruct_static_scene.py \
   --target-time-seconds 22 30 38 \
   --confidence-percentile 20 \
-  --output-dir artifacts/s02/completeness_accepted_v2_20260731
+  --static-inclusion-confidence-percentile 5 \
+  --static-inclusion-world-bounds -0.35 -0.40 0.00 0.90 -0.12 2.10 \
+  --output-dir artifacts/s02/door_inclusive_candidate_20260731
 
 .venv/bin/python scripts/s02/export_rerun_static_scene.py \
   --run-summary \
-    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
+    artifacts/s02/door_inclusive_candidate_20260731/summary.json \
   --output \
-    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
+    artifacts/s02/door_inclusive_candidate_20260731/static_scene_door_inclusive_v2.rrd
 
 .venv/bin/rerun \
-  artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
+  artifacts/s02/door_inclusive_candidate_20260731/static_scene_door_inclusive_v2.rrd
 
 .venv/bin/python scripts/s02/verify_static_scene.py \
   --run-summary \
-    artifacts/s02/completeness_accepted_v2_20260731/summary.json \
+    artifacts/s02/door_inclusive_candidate_20260731/summary.json \
   --rerun-export-summary \
-    artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted_export_summary.json \
+    artifacts/s02/door_inclusive_candidate_20260731/static_scene_door_inclusive_v2_export_summary.json \
   --rerun-screenshot \
-    artifacts/s02/completeness_accepted_v2_20260731/previews/rerun_static_scene_accepted.png \
+    artifacts/s02/door_inclusive_candidate_20260731/previews/rerun_static_scene_door_inclusive.png \
   --output \
-    artifacts/s02/completeness_accepted_v2_20260731/verification.json
+    artifacts/s02/door_inclusive_candidate_20260731/verification_v3.json
 
 .venv/bin/pytest -q
 .venv/bin/ruff check src tests scripts
@@ -195,7 +212,7 @@ diagnostic remains under `artifacts/s02/corrected_calibrated_20260731/`.
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache lock --check
 uv --cache-dir /private/tmp/spatial-reconstruction-uv-cache sync --check
 .venv/bin/rerun rrd print \
-  artifacts/s02/completeness_accepted_v2_20260731/static_scene_accepted.rrd
+  artifacts/s02/door_inclusive_candidate_20260731/static_scene_door_inclusive_v2.rrd
 git diff --check
 ```
 
@@ -204,13 +221,15 @@ or Rerun recording. Use a new output path when reproducing the run.
 
 ## Final Verification
 
-- `141` automated tests passed.
+- `143` automated tests passed.
 - Ruff passed across `src`, `tests`, and `scripts`.
 - Strict mypy passed across `23` S02-relevant source/script files.
 - Lockfile and installed-environment consistency checks passed.
 - The accepted Rerun recording parsed successfully with `58` chunks.
 - The verification script checked `16` hashed inputs/outputs and all automated
-  gate checks passed.
+  gate checks passed, including bounded-policy validity, nonzero supplemental
+  points from both cameras, fused door-volume presence, and Rerun-sample
+  survival.
 - Transform, projection, invalid-depth, confidence, bounds, missing-data,
   deterministic selection, voxel fusion, PLY, persistent-summary schema, and
   overlap failure behaviours are covered.
@@ -221,7 +240,7 @@ or Rerun recording. Use a new output path when reproducing the run.
 ## Completion Gate
 
 - Point cloud recognizable as the living room: **passed** by inspection of the
-  geometry and Rerun previews.
+  geometry and Rerun previews, including the door plane behind M40.
 - Both cameras occupy one plausibly aligned world frame: **passed** by visual
   inspection and bidirectional `0.10 m` overlap.
 - Invalid and out-of-room points filtered: **passed** by tests, recorded
@@ -238,6 +257,8 @@ or Rerun recording. Use a new output path when reproducing the run.
   not alter raw DA3 output and must not be reused for S04 dynamic localization.
 - D026's `20th`-percentile filter is an S02 completeness/noise trade-off. It
   retains more low-confidence surfaces and does not redefine room bounds.
+- D027's p5 supplement is limited to a video-estimated static door volume. It
+  is not surveyed geometry and must not be applied to dynamic localization.
 - Camera intrinsics remain the bounded shared estimate accepted under D021.
 - Room bounds are a conservative crop rather than measured wall/ceiling
   surfaces.
@@ -246,5 +267,5 @@ or Rerun recording. Use a new output path when reproducing the run.
 
 ## Exact Next Action
 
-S02 and its D026 completeness revision are remotely verified. Stop; do not
-begin S03 until the user explicitly requests it.
+Commit and push the verified D027 door-inclusive revision, record its remote
+provenance, then stop. Do not begin S03.

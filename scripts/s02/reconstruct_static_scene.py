@@ -94,6 +94,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--process-resolution", type=int, default=504)
     parser.add_argument("--confidence-percentile", type=float, default=20.0)
+    parser.add_argument(
+        "--static-inclusion-confidence-percentile",
+        type=float,
+        help=(
+            "Optional lower percentile used only inside "
+            "--static-inclusion-world-bounds."
+        ),
+    )
+    parser.add_argument(
+        "--static-inclusion-world-bounds",
+        type=float,
+        nargs=6,
+        metavar=("MIN_X", "MIN_Y", "MIN_Z", "MAX_X", "MAX_Y", "MAX_Z"),
+        help="Optional world-space AABB for a bounded low-confidence S02 supplement.",
+    )
     parser.add_argument("--voxel-size-m", type=float, default=0.02)
     parser.add_argument(
         "--marker-scale-correction",
@@ -173,6 +188,38 @@ def main() -> int:
 
     camera_intrinsics, camera_poses = _camera_contracts(calibration)
     room_bounds = _room_bounds(scene_metadata)
+    if (args.static_inclusion_confidence_percentile is None) != (
+        args.static_inclusion_world_bounds is None
+    ):
+        raise ValueError(
+            "static inclusion confidence percentile and world bounds "
+            "must be provided together"
+        )
+    static_inclusion_bounds: AxisAlignedBounds | None = None
+    static_inclusion_values: tuple[float, ...] | None = None
+    if args.static_inclusion_world_bounds is not None:
+        static_inclusion_values = tuple(
+            float(value) for value in args.static_inclusion_world_bounds
+        )
+        static_inclusion_bounds = AxisAlignedBounds(
+            minimum_world_xyz_m=cast(
+                tuple[float, float, float],
+                static_inclusion_values[:3],
+            ),
+            maximum_world_xyz_m=cast(
+                tuple[float, float, float],
+                static_inclusion_values[3:],
+            ),
+        )
+        inclusion_corners = np.asarray(
+            [
+                static_inclusion_bounds.minimum_world_xyz_m,
+                static_inclusion_bounds.maximum_world_xyz_m,
+            ],
+            dtype=np.float64,
+        )
+        if not bool(np.all(room_bounds.contains(inclusion_corners))):
+            raise ValueError("static inclusion bounds must remain inside room bounds")
     marker_ids, marker_centres_world_m = _marker_anchors(calibration)
     keyframe_paths = _extract_undistorted_keyframes(
         output_dir=output_dir,
@@ -274,6 +321,14 @@ def main() -> int:
             output.confidence,
             percentile=float(args.confidence_percentile),
         )
+        static_inclusion_confidence_threshold = (
+            None
+            if args.static_inclusion_confidence_percentile is None
+            else confidence_percentile_threshold(
+                output.confidence,
+                percentile=float(args.static_inclusion_confidence_percentile),
+            )
+        )
         processed_intrinsics = tuple(
             CameraIntrinsics(
                 camera_id=camera_id,
@@ -368,6 +423,30 @@ def main() -> int:
                 dtype=np.float32,
             ),
             confidence_threshold=np.asarray(confidence_threshold, dtype=np.float32),
+            static_inclusion_confidence_percentile=np.asarray(
+                (
+                    np.nan
+                    if args.static_inclusion_confidence_percentile is None
+                    else float(args.static_inclusion_confidence_percentile)
+                ),
+                dtype=np.float32,
+            ),
+            static_inclusion_confidence_threshold=np.asarray(
+                (
+                    np.nan
+                    if static_inclusion_confidence_threshold is None
+                    else static_inclusion_confidence_threshold
+                ),
+                dtype=np.float32,
+            ),
+            static_inclusion_world_bounds=np.asarray(
+                (
+                    [np.nan] * 6
+                    if static_inclusion_values is None
+                    else static_inclusion_values
+                ),
+                dtype=np.float32,
+            ),
             is_metric=np.asarray(output.is_metric),
         )
         depth_preview_path = (
@@ -392,6 +471,10 @@ def main() -> int:
                 pose=poses_by_id[camera_id],
                 confidence_threshold=confidence_threshold,
                 room_bounds=room_bounds,
+                supplemental_confidence_threshold=(
+                    static_inclusion_confidence_threshold
+                ),
+                supplemental_world_bounds=static_inclusion_bounds,
             )
             points_by_camera[camera_id].append(cloud.points_world_m)
             colors_by_camera[camera_id].append(cloud.colors_rgb)
@@ -416,6 +499,9 @@ def main() -> int:
                     "valid_depth_count": cloud.stats.valid_depth_count,
                     "finite_confidence_count": cloud.stats.finite_confidence_count,
                     "confidence_retained_count": cloud.stats.confidence_retained_count,
+                    "supplemental_confidence_retained_count": (
+                        cloud.stats.supplemental_confidence_retained_count
+                    ),
                     "room_bounds_retained_count": cloud.stats.room_bounds_retained_count,
                 },
                 "depth_range_m": _finite_range(output.depth_m[camera_index]),
@@ -548,6 +634,26 @@ def main() -> int:
                 "method": "finite confidence at or above per-pair percentile",
                 "percentile": float(args.confidence_percentile),
                 "vendor_default_percentile": 40.0,
+            },
+            "static_inclusion": {
+                "enabled": static_inclusion_bounds is not None,
+                "decision": "D027",
+                "scope": "derived S02 static point clouds only",
+                "confidence_percentile": (
+                    None
+                    if args.static_inclusion_confidence_percentile is None
+                    else float(args.static_inclusion_confidence_percentile)
+                ),
+                "minimum_world_xyz_m": (
+                    None
+                    if static_inclusion_bounds is None
+                    else list(static_inclusion_bounds.minimum_world_xyz_m)
+                ),
+                "maximum_world_xyz_m": (
+                    None
+                    if static_inclusion_bounds is None
+                    else list(static_inclusion_bounds.maximum_world_xyz_m)
+                ),
             },
             "room_bounds": {
                 "minimum_world_xyz_m": list(room_bounds.minimum_world_xyz_m),

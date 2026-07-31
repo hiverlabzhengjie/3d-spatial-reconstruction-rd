@@ -409,6 +409,7 @@ def test_backprojection_filters_invalid_low_confidence_and_out_of_room_points() 
     assert cloud.stats.valid_depth_count == 3
     assert cloud.stats.finite_confidence_count == 4
     assert cloud.stats.confidence_retained_count == 2
+    assert cloud.stats.supplemental_confidence_retained_count == 0
     assert cloud.stats.room_bounds_retained_count == 1
 
 
@@ -429,7 +430,61 @@ def test_backprojection_returns_empty_cloud_without_placeholder_xyz() -> None:
 
     assert cloud.points_world_m.shape == (0, 3)
     assert cloud.colors_rgb.shape == (0, 3)
+    assert cloud.stats.supplemental_confidence_retained_count == 0
     assert cloud.stats.room_bounds_retained_count == 0
+
+
+def test_backprojection_retains_only_bounded_supplemental_confidence() -> None:
+    intrinsics, pose = identity_camera()
+    cloud = backproject_static_depth(
+        depth_m=np.ones((2, 2)),
+        confidence=np.array([[3.0, 1.0], [1.0, 1.0]]),
+        colors_rgb=np.array(
+            [
+                [[10, 20, 30], [40, 50, 60]],
+                [[70, 80, 90], [100, 110, 120]],
+            ],
+            dtype=np.uint8,
+        ),
+        intrinsics=intrinsics,
+        pose=pose,
+        confidence_threshold=2.0,
+        room_bounds=AxisAlignedBounds(
+            minimum_world_xyz_m=(-0.1, -0.1, 0.0),
+            maximum_world_xyz_m=(1.5, 1.5, 2.0),
+        ),
+        supplemental_confidence_threshold=0.5,
+        supplemental_world_bounds=AxisAlignedBounds(
+            minimum_world_xyz_m=(0.5, -0.1, 0.5),
+            maximum_world_xyz_m=(1.5, 0.1, 1.5),
+        ),
+    )
+
+    assert cloud.points_world_m == pytest.approx(
+        np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 1.0]])
+    )
+    assert cloud.colors_rgb.tolist() == [[10, 20, 30], [40, 50, 60]]
+    assert cloud.stats.confidence_retained_count == 2
+    assert cloud.stats.supplemental_confidence_retained_count == 1
+    assert cloud.stats.room_bounds_retained_count == 2
+
+
+def test_backprojection_requires_complete_supplemental_policy() -> None:
+    intrinsics, pose = identity_camera()
+    with pytest.raises(ValueError, match="must be provided together"):
+        backproject_static_depth(
+            depth_m=np.ones((2, 2)),
+            confidence=np.ones((2, 2)),
+            colors_rgb=np.zeros((2, 2, 3), dtype=np.uint8),
+            intrinsics=intrinsics,
+            pose=pose,
+            confidence_threshold=1.0,
+            room_bounds=AxisAlignedBounds(
+                minimum_world_xyz_m=(-1.0, -1.0, 0.0),
+                maximum_world_xyz_m=(2.0, 2.0, 2.0),
+            ),
+            supplemental_confidence_threshold=0.5,
+        )
 
 
 def test_voxel_downsample_is_deterministic_and_averages_colors() -> None:
