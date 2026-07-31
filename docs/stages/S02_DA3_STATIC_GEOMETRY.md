@@ -123,6 +123,36 @@ voxelization. The accepted door-inclusive point clouds contain:
 The fused extent is approximately `(-0.385, -0.330, 0.000)` to
 `(2.841, 4.152, 2.004) m`, wholly inside the unchanged processing bounds.
 
+## Technique Note - Regionally Selective Confidence Relaxation
+
+The door recovery demonstrates a useful static-reconstruction technique:
+retain a conservative global confidence threshold for the scene, then lower
+the threshold only within a small calibrated world-space region containing a
+known missing feature. This recovers low-texture surfaces without globally
+admitting the extra noise associated with a lower percentile.
+
+Use the technique only when all of the following are true:
+
+- the feature is visibly present in the accepted source images;
+- raw model depth is finite and positive there;
+- the reconstructed positions are plausible and inside the room bounds;
+- diagnostic evidence shows that confidence filtering caused the omission;
+- the feature is useful enough to justify a one-time static completeness
+  exception.
+
+The implementation must form the union of the normal confident points and the
+lower-confidence points that fall inside the explicit world-space inclusion
+volume. It must not fabricate depth, relax the room bounds, or replace the
+global threshold. Record the inclusion volume, lower percentile, actual
+thresholds, per-camera supplemental counts, fused-region count, and Rerun
+sample count. Verify both successful inclusion and failure of incomplete or
+unbounded policies.
+
+This is deliberately a static-scene technique. It must not be inherited by
+person/object tracking or dynamic DA3 localization without a separate decision
+and evidence, because regional confidence relaxation can otherwise create
+plausible-looking but unstable dynamic observations.
+
 ## Cross-Camera and Visual QA
 
 An exact spatial-hash radius check on the retained per-camera PLY files found:

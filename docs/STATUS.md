@@ -297,6 +297,10 @@
   - verified `10,126` fused points in the door volume, including `3,719` in
     the Rerun visualization sample, with revised bidirectional overlap of
     `73.363%` and `86.297%`;
+  - documented D027 as a reusable one-time static-reconstruction technique:
+    preserve the global threshold, selectively lower confidence only inside a
+    calibrated world-space feature region, and require bounded provenance and
+    geometry/Rerun verification;
   - visually verified recognizable living-room geometry plus both calibrated
     cameras, markers, bounds, and zones in the accepted Rerun recording;
   - produced schema-validated run, Rerun, and verification evidence, including

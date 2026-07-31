@@ -210,6 +210,21 @@ a new output directory and Rerun filename for a reproduction run.
   configuration; normal native viewing, the localhost-only web viewer, and
   the `.rrd` recording are unaffected.
 
+## Reusable Static-Reconstruction Technique
+
+When an important static feature is visible and has valid depth but is removed
+by the global confidence filter, preserve the global threshold and introduce a
+smaller world-space inclusion volume with a lower regional percentile. This is
+safer than lowering confidence across the whole scene and more consistent
+across calibrated cameras than maintaining separate pixel masks.
+
+Required guardrails are: finite positive depth, inclusion bounds wholly inside
+the global room bounds, persisted thresholds/bounds/counts, supplemental
+points from relevant views, unchanged raw outputs, overlap and integrity
+verification, visual confirmation, and proof that the feature remains in the
+Rerun sample. Treat each region as an explicit static-only exception; do not
+carry it into S03 perception or S04 dynamic localization by default.
+
 ## Decisions Made
 
 - D025 - marker-anchored scalar correction for S02 static depth.

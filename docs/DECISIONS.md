@@ -568,3 +568,33 @@ or S04 dynamic localization. Persist the supplemental threshold, volume, and
 retained-point counts; test that unpaired or unbounded supplemental policies
 fail; and re-run overlap, finite-value, room-bound, artifact-integrity, and
 visual Rerun checks before accepting the result.
+
+### Reusable technique pattern
+
+D027 establishes a reusable technique for one-time static reconstruction when
+a known, important feature has valid depth but is removed by a scene-wide
+confidence cutoff:
+
+1. Confirm the feature is visible in accepted source views and has finite,
+   positive model depth.
+2. Prove that confidence filtering, rather than camera coverage or room
+   bounds, is the cause of the omission.
+3. Keep the accepted global confidence threshold unchanged.
+4. Define the smallest practical inclusion region in the calibrated world
+   frame and allow a lower confidence percentile only inside that region.
+5. Continue applying finite-depth and global room-bound checks to every
+   retained point.
+6. Persist the global and regional thresholds, inclusion bounds, and added
+   per-camera counts.
+7. Re-run cross-camera overlap, finite/bounds, artifact-integrity, and visual
+   Rerun checks; also confirm that the feature survives visualization
+   sampling.
+
+Prefer a world-space inclusion region over a camera-specific pixel mask when
+calibrated multi-view depth is available. A world-space region expresses one
+physical feature consistently across cameras and frames, while a pixel mask
+would require separate view-specific annotations and can drift with image
+processing. Do not use regional threshold relaxation to invent missing depth,
+expand the global room envelope, conceal a calibration error, or silently
+change dynamic-localization policy. Each new region requires its own recorded
+rationale and verification evidence.
