@@ -233,11 +233,14 @@ Inputs and physical state:
   `4084c34e9c1d26d6dae0294fa0321ec238824704`
 - Stage-close GitHub URL:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/4084c34e9c1d26d6dae0294fa0321ec238824704`
-- D026 completeness-revision commit: `Pending`
+- D026 completeness-revision commit:
+  `e163b4e72c90ac798e84df264162b93541922a3c`
+- D026 completeness-revision GitHub URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/e163b4e72c90ac798e84df264162b93541922a3c`
 - Annotated tag: `None`
 - Remote push verified: `Yes`; `refs/heads/main` resolved to
-  `4084c34e9c1d26d6dae0294fa0321ec238824704` before this provenance-only
-  handoff update.
+  `e163b4e72c90ac798e84df264162b93541922a3c` before this final
+  provenance-only handoff update.
 - DA3 vendor fingerprint:
   `683cad1fec1186cd2a22f2b6d083b73d4c83c7ab1140f45ba24876612bc51d43`
 - DA3 model revision:
@@ -249,6 +252,5 @@ own final hash.
 
 ## Exact Next Action
 
-Commit and push the verified D026 completeness revision, record its remote
-provenance, then stop. Begin S03 person/backpack perception only after
-explicit user instruction.
+Stop. Begin S03 person/backpack perception only after explicit user
+instruction.

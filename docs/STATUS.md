@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-31
 **Overall phase:** Implementation
 **Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - D026 revision gate passed; version-control close pending
+**Stage state:** Complete - D026 revision pushed and remotely verified
 
 ## Completed
 
@@ -298,6 +298,9 @@
   - closed S02 with commit
     `4084c34e9c1d26d6dae0294fa0321ec238824704`, pushed it to `origin/main`,
     and verified the remote branch resolved to that exact commit.
+  - re-verified and published the user-approved D026 completeness revision with
+    commit `e163b4e72c90ac798e84df264162b93541922a3c`; `origin/main` resolved to
+    that exact revision before the final provenance-only update.
 
 ## Current Blockers and Unknowns
 
@@ -349,6 +352,5 @@
 
 ## Exact Next Action
 
-Commit and push the verified D026 S02 completeness revision, confirm
-`origin/main` resolves to it, record the revision provenance, then stop. Do not
-begin S03.
+Stop. Do not begin S03 person/backpack perception until the user explicitly
+requests it.
