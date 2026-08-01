@@ -1,9 +1,9 @@
 # Project Status
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-01
 **Overall phase:** Implementation
-**Current stage:** S02 - DA3 Static Room Geometry
-**Stage state:** Complete - D027 door-inclusive revision pushed and remotely verified
+**Current stage:** S03 - Person and Backpack Perception
+**Stage state:** Complete - awaiting explicit instruction before S04
 
 ## Completed
 
@@ -319,6 +319,39 @@
   - re-verified and published the D027 door-inclusive revision with commit
     `9226a85911cba0e032bdf76b5d32bb9828ff1997`; `origin/main` resolved to
     that exact revision before this final provenance-only update.
+- Completed S03:
+  - ran the exact `yolov8n-seg.pt` checkpoint on representative synchronized
+    action frames and retained raw masks, boxes, classes, confidences, timings,
+    frame identities, and annotated previews;
+  - adopted D028 after dense evidence showed that guarded `backpack` plus
+    `handbag` candidates are usable for the one physical demonstration bag,
+    while `suitcase` is an excluded bed-region false positive;
+  - added camera-local persistent ByteTrack support and explicit tentative
+    detections without assigned track IDs;
+  - adopted D029 to keep nominal perception at 5 FPS per camera, reject a
+    continuous 10 FPS experiment on the single M1 Max, and treat the backpack
+    as a representative rather than permanent application object class;
+  - tracked the person through the representative sequence, including one
+    Camera B track with `152/160` observations;
+  - retained a `32`-observation Camera A stationary/pickup backpack track and
+    an eight-observation Camera B placement track across preserved `handbag`
+    and `backpack` vendor labels;
+  - ran two independent capacity-eight bounded queues over `160` synchronized
+    5 FPS bundles per camera, recording `152` explicit throttle events per
+    queue, zero drops/failures, stable job IDs, and exact capture order;
+  - derived `640` immutable person/backpack target-state records with nested
+    confidence/vendor/track provenance, mask area, border visibility, and
+    explicit observed, untracked, ambiguous, missing, or failed state;
+  - recorded rather than filled the main two-camera backpack absence from
+    approximately `17.2-22.0 s`; image-plane absence is not automatically
+    labelled occlusion and no coordinates are invented;
+  - passed the S03 completion gate without activating the bottle fallback or
+    weakening the accepted 5 FPS policy;
+  - passed `162` automated tests, Ruff, strict mypy, lockfile/environment, raw
+    artifact, source-integrity, and whitespace checks; and
+  - recorded exact evidence in
+    `docs/stages/S03_PERSON_BACKPACK_PERCEPTION.md` and
+    `docs/stages/S03_HANDOFF.md`.
 
 ## Current Blockers and Unknowns
 
@@ -343,6 +376,24 @@
   accepted.
 - No S01 completion-gate blocker remains.
 - No S02 completion-gate blocker remains.
+- S03 dense sampling confirmed that the physical backpack is not reliably
+  labelled `backpack` by the baseline checkpoint. D028's guarded `backpack`
+  plus `handbag` candidate policy is accepted for the one physical
+  demonstration bag; `suitcase` remains excluded.
+- D028 bag tracks remain fragmented across viewpoint/absence phases. The main
+  approximately `17.2-22.0 s` two-camera gap is persisted as missing rather
+  than filled. This is an accepted proof-of-concept limitation, not a blocker
+  for the S03 representative-segment gate.
+- D029 cancels the proposed continuous 10 FPS comparison. The backpack is the
+  representative movable object for this proof of concept, while the core value
+  remains synchronized, metric, provenance-preserving spatial/event context.
+  S03 keeps honest backpack evidence without optimizing a future application's
+  object taxonomy prematurely.
+- The integrated D028 bounded replay completed all 160 jobs per camera in exact
+  capture order through independent capacity-eight queues. Each queue recorded
+  152 throttle-and-drain events, zero drops, zero failures, stable replay job
+  IDs, explicit empty-candidate frames, and complete raw artifacts.
+- No S03 completion-gate blocker remains.
 
 ## Available Software Inputs
 
@@ -370,5 +421,8 @@
 
 ## Exact Next Action
 
-Stop. Do not begin S03 person/backpack perception until the user explicitly
-requests it.
+Stop. Begin S04 only after explicit user instruction. First run
+pose-conditioned DA3 metric depth on selected synchronized action frames that
+contain retained masks, then back-project only valid dynamic mask depth into
+raw per-camera world observations. Do not reuse S02's static-scene scale
+correction for S04 dynamic localization.

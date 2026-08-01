@@ -27,6 +27,7 @@ from spatial_reconstruction.models.yolo_adapter import (
     YOLOValidationError,
     load_first_image_rgb,
     normalize_yolo_result,
+    select_perception_candidates,
 )
 
 __all__ = [
@@ -50,6 +51,7 @@ __all__ = [
     "make_synthetic_two_view_cameras",
     "load_first_image_rgb",
     "normalize_yolo_result",
+    "select_perception_candidates",
     "uniform_frame_indices",
     "validate_da3_prediction",
 ]

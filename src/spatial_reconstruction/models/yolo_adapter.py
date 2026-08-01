@@ -17,6 +17,8 @@ from PIL import Image, ImageOps
 
 from spatial_reconstruction.contracts import (
     FrameRef,
+    PerceptionCandidate,
+    PerceptionTarget,
     PixelBox,
     SegmentationDetection,
 )
@@ -40,6 +42,8 @@ class _YOLOModel(Protocol):
 
     def predict(self, **kwargs: object) -> Sequence[object]: ...
 
+    def track(self, **kwargs: object) -> Sequence[object]: ...
+
 
 @dataclass(frozen=True, slots=True)
 class LoadedImage:
@@ -62,6 +66,7 @@ class NormalizedYOLOResult:
     raw_boxes_xyxy: Float32Array
     raw_class_ids: Int64Array
     raw_confidence: Float32Array
+    raw_track_ids: Int64Array
     raw_masks: Float32Array
     class_names: dict[int, str]
     speed_ms: dict[str, float]
@@ -75,6 +80,7 @@ class YOLOSegAdapter:
             raise ValueError(f"expected a segmentation model, got task '{model.task}'")
         self._model = model
         self.weight_path = weight_path.resolve()
+        self._tracking_camera_id: str | None = None
 
     @classmethod
     def from_pretrained(cls, *, model_id: str, cache_dir: Path) -> YOLOSegAdapter:
@@ -147,6 +153,60 @@ class YOLOSegAdapter:
             raise YOLOValidationError(f"expected one YOLO result, got {len(results)}")
         return results[0]
 
+    def track(
+        self,
+        *,
+        image_rgb: UInt8Array,
+        frame: FrameRef,
+        device: DeviceName,
+        image_size: int,
+        confidence_threshold: float,
+        class_ids: tuple[int, ...],
+    ) -> object:
+        """Run persistent camera-local ByteTrack on one capture-ordered frame."""
+
+        if image_rgb.ndim != 3 or image_rgb.shape != (
+            frame.image_height,
+            frame.image_width,
+            3,
+        ):
+            raise ValueError("tracking image must match the immutable frame dimensions")
+        if image_size <= 0:
+            raise ValueError("YOLO inference image size must be positive")
+        if (
+            not math.isfinite(confidence_threshold)
+            or confidence_threshold < 0
+            or confidence_threshold > 1
+        ):
+            raise ValueError("YOLO confidence threshold must be within [0, 1]")
+        if not class_ids or len(set(class_ids)) != len(class_ids) or any(
+            class_id < 0 for class_id in class_ids
+        ):
+            raise ValueError("tracking class IDs must be unique non-negative integers")
+        if self._tracking_camera_id is None:
+            self._tracking_camera_id = frame.camera_id
+        elif self._tracking_camera_id != frame.camera_id:
+            raise ValueError(
+                "one YOLOSegAdapter tracker instance cannot mix camera streams"
+            )
+
+        results = self._model.track(
+            source=image_rgb,
+            device=device,
+            imgsz=image_size,
+            conf=confidence_threshold,
+            classes=list(class_ids),
+            retina_masks=True,
+            persist=True,
+            tracker="bytetrack.yaml",
+            verbose=False,
+            save=False,
+            stream=False,
+        )
+        if len(results) != 1:
+            raise YOLOValidationError(f"expected one tracked result, got {len(results)}")
+        return results[0]
+
 
 def load_first_image_rgb(path: Path) -> LoadedImage:
     """Decode the first frame with EXIF orientation without modifying the source."""
@@ -173,6 +233,7 @@ def normalize_yolo_result(
     *,
     frame: FrameRef,
     mask_artifact_ref: str,
+    require_track_ids: bool = False,
 ) -> NormalizedYOLOResult:
     """Validate an Ultralytics result and normalize masks to source dimensions."""
 
@@ -201,6 +262,9 @@ def normalize_yolo_result(
     count = raw_boxes.shape[0]
     if raw_class_ids.shape != (count,) or raw_confidence.shape != (count,):
         raise YOLOValidationError("YOLO box, class, and confidence counts must match")
+    raw_track_ids = _normalize_track_ids(boxes, count=count)
+    if require_track_ids and count and np.any(raw_track_ids < 0):
+        raise YOLOValidationError("tracked detections require camera-local track IDs")
 
     masks_object = vendor.masks
     if masks_object is None:
@@ -249,6 +313,11 @@ def normalize_yolo_result(
                     y_max=float(box[3]),
                 ),
                 mask_ref=f"{mask_artifact_ref}#mask_{index:04d}",
+                camera_local_track_id=(
+                    f"{frame.camera_id}:{int(raw_track_ids[index])}"
+                    if raw_track_ids[index] >= 0
+                    else None
+                ),
             )
         )
 
@@ -266,10 +335,67 @@ def normalize_yolo_result(
         raw_boxes_xyxy=raw_boxes.copy(),
         raw_class_ids=raw_class_ids.copy(),
         raw_confidence=raw_confidence.copy(),
+        raw_track_ids=raw_track_ids.copy(),
         raw_masks=raw_masks.copy(),
         class_names=class_names,
         speed_ms=speed_ms,
     )
+
+
+def select_perception_candidates(
+    result: NormalizedYOLOResult,
+    *,
+    bag_class_aliases: tuple[str, ...],
+    excluded_bag_classes: tuple[str, ...],
+    policy_id: str,
+) -> tuple[PerceptionCandidate, ...]:
+    """Apply D028 without changing vendor labels, confidences, boxes, or masks."""
+
+    aliases = tuple(value.strip() for value in bag_class_aliases)
+    excluded = tuple(value.strip() for value in excluded_bag_classes)
+    if not aliases or any(not value for value in aliases):
+        raise ValueError("bag aliases must be non-empty")
+    if "backpack" not in aliases or "person" in aliases:
+        raise ValueError("bag aliases must contain backpack and exclude person")
+    if set(aliases) & set(excluded):
+        raise ValueError("bag aliases and excluded bag classes cannot overlap")
+
+    candidates: list[PerceptionCandidate] = []
+    for index, detection in enumerate(result.detections):
+        if detection.class_name == "person":
+            target = PerceptionTarget.PERSON
+        elif detection.class_name in aliases:
+            target = PerceptionTarget.BACKPACK
+        else:
+            continue
+        candidates.append(
+            PerceptionCandidate(
+                detection_index=index,
+                target=target,
+                source_detection=detection,
+                policy_id=policy_id,
+            )
+        )
+    return tuple(candidates)
+
+
+def _normalize_track_ids(boxes: object, *, count: int) -> Int64Array:
+    if boxes is None:
+        return np.empty((0,), dtype=np.int64)
+    raw_ids = getattr(boxes, "id", None)
+    if raw_ids is None:
+        return np.full((count,), -1, dtype=np.int64)
+    values_float = _to_numpy(raw_ids, dtype=np.float32).reshape(-1)
+    if values_float.shape != (count,):
+        raise YOLOValidationError("YOLO track ID count must match detection count")
+    if not np.isfinite(values_float).all() or not np.equal(
+        values_float, np.floor(values_float)
+    ).all():
+        raise YOLOValidationError("YOLO track IDs must be finite integers")
+    values = values_float.astype(np.int64)
+    if np.any(values < 0):
+        raise YOLOValidationError("YOLO track IDs must be non-negative")
+    return values
 
 
 def _to_numpy(value: Any, *, dtype: DTypeLike) -> NDArray[Any]:

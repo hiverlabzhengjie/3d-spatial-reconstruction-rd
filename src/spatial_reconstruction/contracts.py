@@ -500,6 +500,44 @@ class SegmentationDetection(ContractModel):
         return self
 
 
+class PerceptionTarget(StrEnum):
+    """Canonical S03 target without erasing the vendor class label."""
+
+    PERSON = "person"
+    BACKPACK = "backpack"
+
+
+class PerceptionCandidate(ContractModel):
+    """One vendor detection selected as a canonical perception candidate."""
+
+    detection_index: NonNegativeInt
+    target: PerceptionTarget
+    source_detection: SegmentationDetection
+    policy_id: str
+
+    @field_validator("policy_id")
+    @classmethod
+    def validate_policy_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or normalized != value:
+            raise ValueError("perception policy ID must be non-empty without whitespace")
+        return value
+
+    @model_validator(mode="after")
+    def validate_target_source_class(self) -> Self:
+        source_class = self.source_detection.class_name
+        if self.target is PerceptionTarget.PERSON and source_class != "person":
+            raise ValueError("person candidates must retain the person vendor class")
+        if self.target is PerceptionTarget.BACKPACK and source_class not in {
+            "backpack",
+            "handbag",
+        }:
+            raise ValueError(
+                "backpack candidates must retain a D028 backpack or handbag class"
+            )
+        return self
+
+
 class ObservationState(StrEnum):
     """Availability state for one raw spatial observation."""
 

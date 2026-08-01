@@ -21,6 +21,9 @@ def test_default_config_loads_with_exact_baseline_models() -> None:
     assert config.paths.da3_vendor_dir.name == "Depth-Anything-3-main"
     assert config.da3.process_resolutions == (336, 420, 504)
     assert config.perception.inference_image_size == 640
+    assert config.perception.bag_class_aliases == ("backpack", "handbag")
+    assert config.perception.excluded_bag_classes == ("suitcase",)
+    assert config.perception.bag_policy_id == "d028_guarded_backpack_handbag_v1"
     assert config.qwen.smoke_frame_count == 4
     assert config.qwen.max_new_tokens == 64
 
@@ -70,4 +73,12 @@ def test_baseline_model_change_requires_a_decision() -> None:
     payload["models"]["qwen"] = "different/model"
 
     with pytest.raises(ValidationError, match="baseline model identifiers changed"):
+        ProjectConfig.model_validate(payload)
+
+
+def test_guarded_bag_policy_rejects_excluded_alias_overlap() -> None:
+    payload = load_project_config().model_dump(mode="json")
+    payload["perception"]["bag_class_aliases"] = ["backpack", "suitcase"]
+
+    with pytest.raises(ValidationError, match="cannot overlap"):
         ProjectConfig.model_validate(payload)

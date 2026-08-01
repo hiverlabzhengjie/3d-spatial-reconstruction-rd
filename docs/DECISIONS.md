@@ -598,3 +598,84 @@ processing. Do not use regional threshold relaxation to invent missing depth,
 expand the global room envelope, conceal a calibration error, or silently
 change dynamic-localization policy. Each new region requires its own recorded
 rationale and verification evidence.
+
+## D028 - Guarded backpack and handbag perception policy
+
+**Date:** 2026-07-31
+**Status:** Active
+
+The S03 dense diagnostic ran the exact `yolov8n-seg.pt` checkpoint on 33
+synchronized times in both accepted action cameras. At the configured `0.25`
+threshold, the physical backpack received the literal `backpack` label in only
+two of 66 camera frames, both near placement. The same object received useful
+`handbag` masks in thirteen Camera A frames during its stationary/pickup phase
+and three Camera B frames near placement. Lowering the diagnostic floor to
+`0.10` produced only five literal `backpack` detections and introduced more
+false positives, so threshold reduction does not solve the class instability.
+
+Retain the existing backpack action recording and treat vendor classes
+`backpack` and `handbag` as candidates for one canonical physical backpack
+track. This is a configured interpretation policy around the unchanged
+standard YOLO checkpoint, not custom training or replacement detection. The
+vendor class, confidence, mask, box, and raw arrays remain unchanged and
+inspectable.
+
+The policy is guarded as follows:
+
+1. `backpack` and `handbag` are the only allowed bag candidate labels;
+   `suitcase` is explicitly excluded because it repeatedly masks most of the
+   bed in Camera A.
+2. The production detection floor remains `0.25`; the `0.10` run is diagnostic
+   evidence only.
+3. An alias candidate is not by itself a confirmed object identity. ByteTrack
+   must assign camera-local identity through capture-time spatial continuity,
+   starting from the known single-bag scenario.
+4. Vendor class changes may occur within one continuous camera-local bag track,
+   but raw labels are never overwritten.
+5. Conflicting simultaneous bag candidates, track discontinuity, or loss of a
+   valid candidate becomes ambiguous, missing, or occluded state rather than a
+   fabricated continuation.
+6. This policy may influence only S03 target selection/tracking and downstream
+   use of the resulting backpack masks. It may not change timestamps, source
+   identities, camera calibration, DA3 depth, spatial coordinates, zones, or
+   Qwen semantics.
+
+The approved bottle remains a fallback if the guarded alias policy still fails
+the S03 tracking gate. The fallback is not activated by this decision.
+
+## D029 - Five-FPS perception cadence and representative object boundary
+
+**Date:** 2026-07-31
+**Status:** Active
+
+Use a nominal S03 YOLO/ByteTrack cadence of `5 FPS` per camera for the accepted
+two-camera recorded workflow. Do not run the proposed continuous `10 FPS`
+comparison. The native 5 FPS smoke consumed approximately `30.01 s` of summed
+inference wall time for about `31.81 s` of two-camera capture interval: roughly
+94% of one serialized real-time compute budget before decoding, queueing,
+artifact writing, or other model work. Doubling the cadence would not be a
+credible future-live default on the single M1 Max.
+
+The observed backpack fragmentation is dominated by absent detections,
+occlusion, viewpoint changes, and vendor-label instability rather than clear
+evidence of temporal undersampling. Camera B already retained one person track
+for 152 of 160 processed frames at 5 FPS, while backpack candidates were absent
+from 123 Camera A frames and 146 Camera B frames. Higher continuous sampling
+may add isolated detections but does not directly solve that failure mode.
+
+The backpack remains the approved representative movable object for this proof
+of concept, not a claim about the eventual application's permanent object
+taxonomy or primary value. The project value is the end-to-end handling of
+synchronized perception, metric spatial observations, calibrated scene
+context, visibility/occlusion, state transitions, semantic events, provenance,
+and Digital Twin-style presentation. S03 must still meet its recorded gate
+honestly, but it will not optimize backpack classification beyond the bounded
+D028 policy, switch to custom training, or spend the project budget pursuing
+an uninterrupted detector label.
+
+Recorded-MP4 execution uses deterministic capture-order throttling with no
+silent source drops. A future live execution policy may coalesce or drop
+superseded ordinary perception work to protect freshness, but every such
+disposition must be explicit and measured. Short event-prioritized bursts may
+be evaluated later only if evidence shows a concrete benefit; continuous
+10 FPS inference is not the default.

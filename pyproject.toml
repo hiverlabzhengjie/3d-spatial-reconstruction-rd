@@ -17,6 +17,7 @@ dependencies = [
     "evo>=1.31,<2",
     "huggingface-hub>=0.34,<2",
     "imageio>=2.37,<3",
+    "lap>=0.5.12,<1",
     "matplotlib>=3.9,<4",
     "moviepy==1.0.3",
     "numpy>=1.26,<2",

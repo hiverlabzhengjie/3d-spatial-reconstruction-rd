@@ -102,16 +102,40 @@ class PerceptionConfig(ConfigModel):
     detection_confidence_threshold: Confidence = 0.25
     inference_image_size: PositiveInt = 640
     target_classes: tuple[str, ...] = ("person", "backpack")
+    bag_class_aliases: tuple[str, ...] = ("backpack", "handbag")
+    excluded_bag_classes: tuple[str, ...] = ("suitcase",)
+    bag_policy_id: str = "d028_guarded_backpack_handbag_v1"
 
-    @field_validator("target_classes")
+    @field_validator("target_classes", "bag_class_aliases", "excluded_bag_classes")
     @classmethod
-    def validate_target_classes(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+    def validate_class_lists(cls, values: tuple[str, ...]) -> tuple[str, ...]:
         normalized = tuple(value.strip() for value in values)
         if not normalized or any(not value for value in normalized):
-            raise ValueError("target classes must be non-empty")
+            raise ValueError("perception class lists must be non-empty")
         if len(set(normalized)) != len(normalized):
-            raise ValueError("target classes must be unique")
+            raise ValueError("perception class lists must be unique")
         return normalized
+
+    @field_validator("bag_policy_id")
+    @classmethod
+    def validate_bag_policy_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or normalized != value:
+            raise ValueError("bag policy ID must be non-empty without outer whitespace")
+        return value
+
+    @model_validator(mode="after")
+    def validate_guarded_bag_policy(self) -> Self:
+        if "person" not in self.target_classes or "backpack" not in self.target_classes:
+            raise ValueError("target classes must include person and backpack")
+        if "backpack" not in self.bag_class_aliases:
+            raise ValueError("bag aliases must retain the literal backpack class")
+        if "person" in self.bag_class_aliases:
+            raise ValueError("person cannot be a bag alias")
+        overlap = set(self.bag_class_aliases) & set(self.excluded_bag_classes)
+        if overlap:
+            raise ValueError("bag aliases and excluded bag classes cannot overlap")
+        return self
 
 
 class QwenConfig(ConfigModel):

@@ -22,6 +22,9 @@ perception:
   detection_confidence_threshold: 0.25
   inference_image_size: 640
   target_classes: [person, backpack]
+  bag_class_aliases: [backpack, handbag]
+  excluded_bag_classes: [suitcase]
+  bag_policy_id: d028_guarded_backpack_handbag_v1
 
 qwen:
   smoke_frame_count: 4
