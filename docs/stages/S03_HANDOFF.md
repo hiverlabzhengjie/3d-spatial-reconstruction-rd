@@ -271,16 +271,24 @@ Inputs and physical state:
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: pending creation after this handoff and final gate check.
-- Stage-close GitHub URL: pending.
+- Stage-close commit:
+  `6764aef05556151963b116e40436c8abbd80abd4`.
+- Stage-close GitHub URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/6764aef05556151963b116e40436c8abbd80abd4`.
 - Annotated tag: `None`.
-- Remote push verified: pending.
+- Remote push verified: **Yes**; `refs/heads/main` resolved to
+  `6764aef05556151963b116e40436c8abbd80abd4` before this provenance-only
+  handoff update.
 - YOLO model SHA-256:
   `a7cd8f929e1903d78a12a48efecab430209f18dc46cb96c3599a5980c63c423c`.
 - DA3 vendor fingerprint required by S04:
   `683cad1fec1186cd2a22f2b6d083b73d4c83c7ab1140f45ba24876612bc51d43`.
 - DA3 model revision required by S04:
   `b2359bdf726fb44ef62acca04d629dcf158053e7`.
+
+This handoff's final commit reference is recorded in a separate
+provenance-only documentation update because a Git commit cannot contain its
+own final hash.
 
 ## Exact Next Action
 

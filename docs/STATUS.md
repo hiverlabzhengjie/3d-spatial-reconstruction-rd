@@ -348,10 +348,14 @@
   - passed the S03 completion gate without activating the bottle fallback or
     weakening the accepted 5 FPS policy;
   - passed `162` automated tests, Ruff, strict mypy, lockfile/environment, raw
-    artifact, source-integrity, and whitespace checks; and
+    artifact, source-integrity, and whitespace checks;
   - recorded exact evidence in
     `docs/stages/S03_PERSON_BACKPACK_PERCEPTION.md` and
-    `docs/stages/S03_HANDOFF.md`.
+    `docs/stages/S03_HANDOFF.md`;
+  - closed S03 with commit
+    `6764aef05556151963b116e40436c8abbd80abd4`, pushed it to `origin/main`,
+    and verified the remote branch resolved to that exact commit before the
+    final provenance-only documentation update.
 
 ## Current Blockers and Unknowns
 
