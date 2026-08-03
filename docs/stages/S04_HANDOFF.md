@@ -246,9 +246,14 @@ was introduced.
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: `<pending stage-close commit>`
-- Annotated tag: `stage-04-da3-localization` (pending)
-- Remote push verified: Pending
+- Stage-close commit: `dd8a29a4111c7282351adf6a5926d1b699a18b7f`
+- Stage-close URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/dd8a29a4111c7282351adf6a5926d1b699a18b7f`
+- Annotated tag: `stage-04-da3-localization`
+- Tag URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/tree/stage-04-da3-localization`
+- Remote push verified: Yes. On 2026-08-03, remote `main` and the
+  annotated tag dereference both resolved to the stage-close commit above.
 - Model/vendor revisions: DA3
   `b2359bdf726fb44ef62acca04d629dcf158053e7`; YOLO checkpoint SHA-256
   `a7cd8f929e1903d78a12a48efecab430209f18dc46cb96c3599a5980c63c423c`;
