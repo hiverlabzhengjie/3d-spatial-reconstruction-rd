@@ -617,7 +617,8 @@
   - created stage-close commit
     `dd8a29a4111c7282351adf6a5926d1b699a18b7f`, added annotated tag
     `stage-04-da3-localization`, pushed both to the public remote, and verified
-    that remote `main` and the dereferenced tag resolve to that commit.
+    that the close commit is on remote `main` and the dereferenced tag resolves
+    exactly to it; later `main` updates are provenance-only documentation.
 
 ## Current Blockers and Unknowns
 
