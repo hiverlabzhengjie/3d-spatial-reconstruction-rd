@@ -473,9 +473,10 @@ estimate remains unaccepted and the fallback is physical measurement or a
 clearer zone capture. Inferred values remain explicitly labelled
 video-estimated rather than surveyed.
 
-## D025 - Marker-anchored scalar correction for S02 static depth
+## D025 - Marker-anchored scalar correction for derived DA3 depth
 
 **Date:** 2026-07-31
+**Amended:** 2026-08-03
 **Status:** Active
 
 The first calibrated S02 run used raw pose-conditioned DA3 metric depth at
@@ -501,9 +502,9 @@ This is a bounded supporting calibration operation under D015. It uses the
 existing OpenCV/NumPy stack and adds no model, dependency, or independent
 reconstruction pipeline. It may influence only the derived S02 static point
 cloud and geometry preview. It may not alter raw DA3 depth/confidence,
-intrinsics, camera poses, marker coordinates, frame identity, timestamps, or
-S04 dynamic localization. Raw and corrected depth plus all scale observations
-must remain separately inspectable.
+intrinsics, camera poses, marker coordinates, frame identity, or timestamps.
+Raw and corrected depth plus all scale observations must remain separately
+inspectable.
 
 The correction is isolated behind an explicit processing option, has synthetic
 recovery and disagreement-rejection tests, and can be removed by disabling the
@@ -511,6 +512,40 @@ option. If the six ratios disagree beyond the limit, the run must stop instead
 of applying a partial or camera-specific correction. This decision makes no
 survey-grade accuracy claim; marker centres retain their stated
 `+/-0.05 m` uncertainty.
+
+The 2026-08-03 amendment adds a separate S04 action-pair profile after the
+retained dynamic frames showed the same marker-consistent DA3 depth
+underestimate. This profile supersedes only the earlier prohibition on using
+D025 for S04 derived depth; it does not import the S02 centre-patch sampling
+rule or any other S02 policy.
+
+For each exact synchronized S04 action pair:
+
+- preserve the original DA3 depth and confidence arrays byte-for-byte and
+  write corrected depth as a separate derived artifact;
+- detect only accepted pose-anchor markers M40-M42 on each exact undistorted
+  keyframe; M43 remains excluded under D022;
+- require each detection centre to remain within `5 px` of its calibrated
+  projection;
+- sample per-pixel `expected camera-Z / raw DA3 depth` ratios inside the
+  protected inner `60%` of the known `180 mm` floor-marker square, using the
+  calibrated ray intersection with world `Z=0`; require at least `16` finite,
+  positive samples per marker and use their median as that marker's ratio;
+- derive exactly one shared pair scale as the median of the accepted marker
+  ratios across both views; require at least two accepted markers per camera,
+  at least five observations across the pair, and no marker ratio more than
+  `5%` from the shared median; and
+- if any gate fails, mark corrected action depth unavailable for that pair.
+  Do not apply a partial scale, camera-specific scale, stale scale, or silent
+  unit-scale fallback.
+
+The S04 correction may influence only later dynamic products rebuilt from the
+separate corrected arrays. It does not retroactively validate or modify the
+existing raw D030-D033 evidence, whose unscaled artifacts remain retained for
+comparison. The action-pair profile has synthetic scale-recovery plus missing-
+camera, insufficient-evidence, reprojection, and disagreement-rejection tests.
+It remains a prototype calibration correction rather than a survey-grade
+accuracy claim.
 
 ## D026 - Lower static-scene confidence percentile for room completeness
 
@@ -679,3 +714,353 @@ superseded ordinary perception work to protect freshness, but every such
 disposition must be explicit and measured. Short event-prioritized bursts may
 be evaluated later only if evidence shows a concrete benefit; continuous
 10 FPS inference is not the default.
+
+## D030 - Candidate-relative dynamic depth confidence and visible-surface rules
+
+**Date:** 2026-08-01
+**Amended:** 2026-08-03
+**Status:** Active
+
+S04 diagnostics compared whole masks, two-pixel eroded interiors, adaptive
+connected depth clusters, and person lower-body regions over `20` observed
+masks from eight exact synchronized action pairs. The full-frame DA3
+confidence distribution is dominated by the static scene and is not a safe
+dynamic-object validity reference: at the same-action-frame `20th` percentile,
+at least one person and one backpack candidate retained zero samples. Median
+retention was approximately `6.95%` for person lower-body candidates and
+`1.96%` for backpack connected clusters.
+
+Use policy `s04_dynamic_visible_surface_v1` for subsequent S04 dynamic sample
+selection:
+
+1. Require finite positive DA3 depth and finite confidence inside the exact
+   current-frame candidate mask.
+2. Compute the confidence threshold from the valid samples of that object
+   candidate, not from the full image or an S02 static-scene policy. Retain
+   samples at or above the candidate's `20th` confidence percentile.
+3. For a person, use the lower `35%` of the observed mask bounding extent and
+   require at least `256` retained samples. Aggregate ray depth with the
+   median. This is a visible lower-body surface measurement, not a body centre
+   or guaranteed ground-contact point.
+4. For the backpack, erode the mask by two processed-grid pixels, form an
+   adaptive interval around its median depth using the greater of `0.15 m` or
+   `2.5 * 1.4826 * MAD`, retain the largest eight-connected component, and
+   require at least `128` confidence-valid samples. Aggregate ray depth with
+   the median. This is a visible backpack surface measurement, not an object
+   centre.
+5. If the target candidate is absent, invalid, or below its minimum retained
+   sample count, emit an unavailable observation. Do not fall back to the
+   whole mask, another timestamp, static depth, S02 confidence, or fabricated
+   coordinates.
+
+On the retained evidence, candidate-relative `p20` kept approximately `80%`
+of each selected candidate: at least `382` person and `203` backpack samples.
+It reduced median relative depth MAD from `0.03479` to `0.02937` for person
+lower-body samples and held backpack connected-cluster median relative MAD
+essentially stable at approximately `0.01516`. Median depth shifted by at most
+`2.91%` for person and `0.90%` for backpack. Higher candidate percentiles
+reduced dispersion further but discarded substantially more support and
+increased maximum median shifts; they are not selected for this bounded proof
+of concept.
+
+The 2026-08-03 corrected-depth rebuild keeps candidate-relative `p20` but
+amends person candidate validity under policy
+`s04_corrected_margin_aware_tracking_v1`. Record contact with every processed-
+image margin using a two-pixel band. Bottom-margin contact means the observed
+mask is vertically truncated and therefore cannot support the lower-`35%`
+footpoint path. In that case, select the adaptive connected depth cluster and
+label it only as a measured upper-body surface. Top or side contact remains
+diagnostic but does not automatically invalidate lower-body evidence because
+it does not by itself prove hidden feet. Backpack sampling remains the
+candidate-relative `p20` connected-cluster rule. All candidates use D025's
+separate corrected action-pair depth while preserving the raw arrays.
+
+This decision does not authorize back-projection, XYZ, ground snapping,
+cross-camera fusion, smoothing, temporal filling, or changes to raw DA3
+outputs. The numeric thresholds are prototype policy derived from the accepted
+one-person/one-backpack action evidence, not calibrated confidence
+probabilities or a general production guarantee.
+
+## D031 - Preserve raw per-camera visible-surface clouds and camera-frame medians
+
+**Date:** 2026-08-02
+**Amended:** 2026-08-03
+**Status:** Active
+
+For each exact current-frame mask/depth join accepted by D030, back-project
+every retained pixel with its own metric depth and the processed camera
+intrinsics. Transform every sample using the accepted explicit
+`T_world_from_camera`. Preserve both the full per-camera sample cloud and one
+robust aggregate computed as the component-wise median of camera-frame XYZ,
+then transform that aggregate once into the world frame.
+
+The camera-frame median is selected because it is robust to residual sample
+outliers, retains D030's median ray-depth meaning in camera Z, and avoids
+mixing coordinate frames during aggregation. It is a raw visible-surface
+summary only. It must not be labelled a person centre, ground contact,
+backpack centre, fused observation, or presentation position.
+
+Require an exact immutable join across action-depth job, synchronized bundle,
+frame, camera, and capture timestamp. The tolerance for this retained
+same-frame action evidence is zero, and worker completion order cannot
+participate in the join. Invalid or undersampled candidates produce an
+unavailable result with no placeholder XYZ. Do not clip or snap samples to
+room bounds, reuse S02 depth, fill another timestamp, derive an anchor, fuse
+cameras, or smooth presentation state in this raw layer.
+
+On the retained S04 evidence, all `20` observations regenerated exactly from
+their source masks and raw DA3 arrays. Maximum sample reprojection error was
+`2.842171e-14 px`, maximum world/camera round-trip error was
+`3.477764e-15 m`, and maximum returned-pose error was `1.395500e-07`. All
+samples were inside the approximate diagnostic room bounds. The four paired
+person views still differed by `0.384-0.679 m`, demonstrating why the later
+anchor/fusion layer must not directly average view-dependent raw surfaces.
+
+The 2026-08-03 rebuild applies the same exact-frame geometry to D025 corrected
+depth and persists the surface role alongside every cloud: person lower body,
+person upper body, or backpack visible cluster. It regenerated all `20`
+surfaces, including three bottom-truncated person views, with maximum
+reprojection error `2.842171e-14 px` and maximum world/camera round-trip error
+`3.477764e-15 m`. The former unscaled clouds remain labelled baseline evidence
+and are not silently relabelled or overwritten.
+
+This decision authorizes raw per-camera visible-surface XYZ only. Target-anchor
+semantics, cross-camera disagreement thresholds, fusion weights, temporal
+state, and presentation smoothing require later S04 evidence and decisions.
+
+## D032 - Target anchor semantics and pre-fusion disagreement gate
+
+**Date:** 2026-08-02
+**Amended:** 2026-08-03
+**Status:** Active
+
+Use policy `s04_target_anchor_v1` between D031 raw visible surfaces and any
+later cross-camera observation.
+
+For person tracking, select the component-wise world-frame median of the
+lowest world-Z quintile of D031's validated lower-body sample cloud. Require at
+least `32` samples; the retained evidence supplies at least `77`. This is a
+measured lower-body surface anchor, not an anatomical centre and not guaranteed
+ground contact. It preserves more support than the lowest decile while giving
+a more consistent vertical meaning than the full raw surface or the bottom
+image-space quintile.
+
+Keep person ground contact as a separate derived state. Reuse the selected
+lower-quintile XY and project it to the already surveyed `world Z=0` floor only
+when the measured lower-quintile median height is at most `0.35 m`. If that
+evidence gate fails, ground contact is unavailable with no XYZ. Six of twelve
+retained person observations pass; six remain unavailable. This projection
+never changes D031 raw XYZ or the measured person tracking anchor.
+
+A lightweight floor method was also evaluated: intersect validated bottom-
+quintile pixel rays directly with the existing horizontal world floor. It adds
+only deterministic ray-plane geometry and no fitted plane, model, dependency,
+or extra capture. Do not select it: one of twelve results leaves the room
+bounds, paired disagreement reaches `1.110 m`, and it is not consistently more
+coherent than the measured lower-body alternatives.
+
+For the backpack, select the component-wise world-frame median of its D031
+visible cluster. This remains a visible-cluster centre, not the hidden physical
+centroid. On the limited repeatability evidence, it reduces the maximum
+separation across three stationary pickup observations from `0.136 m` for the
+D031 reference to `0.126 m`, and reduces the two placed observations from
+`0.056 m` to `0.045 m`.
+
+Before fusion, compare exact same-job selected anchors in world space. A pair
+is eligible only when its Euclidean separation is at most `0.35 m`. The
+bounded person evidence contains one pair at `0.231 m`; the next closest is
+`0.474 m`, followed by `0.510 m` and `0.759 m`. The threshold lies inside that
+observed gap and is a prototype disagreement gate, not a production-calibrated
+accuracy guarantee. Above the gate, preserve a paired-disagreement state and
+do not fuse. With one valid camera, preserve a single-camera observation and
+its provenance. With neither camera, emit unavailable without XYZ.
+
+The 2026-08-03 rebuild makes the person tracking anchor consistently mean a
+footpoint whenever the image actually supports one. A per-camera footpoint is
+available only when:
+
+1. the person mask does not touch the two-pixel bottom margin;
+2. the lowest world-Z quintile contains at least `32` corrected-depth samples;
+3. its median measured height lies within `-0.10 m` to `0.35 m` of the surveyed
+   `world Z=0` floor.
+
+When all gates pass, retain the measured low-Z XY and derive a vertical
+projection to `Z=0`, explicitly labelled `person_footpoint`. Seven of twelve
+per-camera views pass. A non-truncated view that fails the floor-height gate
+retains only a measured `person_lower_body_surface`; a bottom-truncated view
+retains only a measured `person_upper_body_surface`. Neither fallback is a
+footpoint, and an upper-body observation is never projected to the floor.
+
+Resolve synchronized camera pairs by semantic priority: footpoint, then lower-
+body surface, then upper-body surface. Thus a valid footpoint in either view
+wins over a cropped or elevated body surface in its mate, while the alternate
+view remains preserved as secondary evidence. Only two anchors of the same
+kind may enter the existing `0.35 m` disagreement gate or fusion. Mixed
+semantics are never averaged. This uses the synchronized mate as a visibility
+fallback without inventing an anatomical offset or adding a new model.
+
+This decision selects anchor semantics and fusion eligibility only. It does
+not select confidence weights, perform camera fusion, fill time, smooth a
+trajectory, or alter raw DA3/model artifacts.
+
+## D033 - Inspectable reliability weighting and honest cross-camera states
+
+**Date:** 2026-08-02
+**Amended:** 2026-08-03
+**Status:** Active
+
+Use policy `s04_cross_camera_observation_v1` after D032 selected-anchor and
+disagreement classification. For each observed camera anchor, compute:
+
+```text
+reliability = sqrt(anchor_support_count)
+              * retained_DA3_confidence_median
+              / (1 + retained_depth_relative_MAD)
+```
+
+The square-root support term rewards broader evidence without allowing mask
+area to dominate linearly. The median DA3 confidence retains D030's
+candidate-relative model evidence. The `1 + relative MAD` denominator applies
+a bounded dispersion penalty rather than unstable inverse-variance weighting.
+The result is an inspectable prototype score, not a probability or calibrated
+accuracy estimate.
+
+Normalize the two scores into contribution weights only when D032 marks an
+exact same-job pair eligible. Fuse its selected world anchors with the weighted
+mean. When two sources exceed D032's `0.35 m` gate, retain both source anchors
+and reliability scores for diagnosis but assign no contribution weights and
+emit no combined XYZ. When exactly one camera is valid, pass its selected
+anchor through with contribution weight `1.0`, label the result single-camera,
+and do not call it fusion. When neither source is valid, emit unavailable
+without XYZ.
+
+On the retained evidence, only the frame `204` person pair is fused. Camera A
+scores `114.7145` and Camera B `61.1843`, giving weights `0.652162` and
+`0.347838`; the combined point is `(0.065857, 2.442960, 0.161857) m`. Twelve
+job/target states are single-camera and three are paired disagreements without
+XYZ. All `13` emitted coordinates remain inside the approximate room bounds,
+and exact-pair source times differ by at most `5 ms`.
+
+The 2026-08-03 corrected rebuild retains the same inspectable reliability
+formula but applies it only after D032's semantic-priority selection. It
+produces two fused and six single-camera person outputs, with no forced
+disagreement or unavailable state in the eight retained pairs. Frames `204`
+and `780` fuse comparable footpoints. At frame `708`, Camera B's valid
+footpoint is selected while Camera A's elevated lower-body surface is retained
+as non-contributing secondary evidence. At frame `408`, Camera A's lower-body
+surface is preferred over Camera B's bottom-truncated upper-body surface.
+Frames `330` and `462` retain measured upper-body fallbacks only. Therefore
+the preferred person layer has outputs at all eight sampled times, but only
+frames `204`, `666`, `708`, `780`, and `858` are footpoint observations;
+fallback kinds must remain visibly and semantically separate in any later
+trajectory.
+
+All eight backpack records remain honest single-camera visible-cluster
+observations. No temporal interpolation, stale carry-forward, mixed-semantic
+fusion, or presentation smoothing is introduced.
+
+This decision performs only same-job cross-camera combination. It does not
+carry a position forward, interpolate time, fill a disagreement, smooth a
+trajectory, change track identity, or alter raw/anchor artifacts.
+
+## D034 - Conservative temporal presentation without inferred motion
+
+**Date:** 2026-08-03
+**Status:** Active
+
+Use policy `s04_temporal_presentation_v1` over D033's verified corrected
+observation layer and the authoritative S03 five-FPS capture-time grid. The
+policy separates what was measured from what may remain briefly visible for
+operator continuity; presentation state never upgrades stale or missing data
+into a new spatial fact.
+
+At an exact corrected D033 keyframe, emit `measured` with identical raw and
+presentation XYZ, the original anchor kind, observation identity, source
+cameras, and capture timestamp. Only this current measured state may update
+zone membership or extend a measured trajectory.
+
+After a measurement, its last presentation coordinate may remain visible for
+at most `1.0 s` as `stale`. The stale record has no raw XYZ, retains the exact
+source measurement timestamp and anchor kind, and may not update zones, event
+spatial facts, or measured trajectories. The one-second horizon is a
+conservative presentation interval shorter than the smallest retained
+inter-measurement gap (`1.4 s`) and half the provisional two-second DA3
+schedule. It is not a motion or accuracy guarantee. Once it expires, emit
+`missing` with no raw or presentation XYZ.
+
+D035 later replaces the sparse DA3 schedule with denser local observations as
+close as `0.6 s`. Keep `1.0 s` as a maximum display-only age, not as a claim
+that it is shorter than every dense interval; a current exact measurement
+always supersedes the stale hold at its capture tick.
+
+Do not interpolate or extrapolate motion, smooth positions, infer coordinates,
+or convert anchor kinds. In particular, a stale upper- or lower-body surface
+remains that surface and never becomes a footpoint. A missing S03 detection is
+not automatically an occlusion: `occluded` requires separate explicit
+evidence. The retained S03 timeline contains no such evidence, so this D034
+artifact claims zero occluded states.
+
+For trajectory visualization, connect only adjacent exact measurements of the
+same target and anchor kind when their capture-time gap is at most `3.0 s`.
+The retained adjacent gaps separate naturally: local gaps reach
+`2.602 s`, followed by `4.202 s` and the known `6.803 s` backpack gap. The
+three-second threshold lies inside that evidence gap. A segment stores only
+its two measured endpoints; it creates no intermediate samples and may not use
+stale positions. Thus the long backpack absence remains visibly disconnected,
+and person upper/lower-body fallbacks cannot connect into the footpoint track.
+
+These thresholds are bounded prototype presentation choices, not production
+freshness or accuracy targets. This decision adds no model, dependency,
+triangulation, motion prior, or non-baseline method and does not alter D025-
+D033 outputs.
+
+## D035 - Mask-aware dense dynamic DA3 keyframes
+
+**Date:** 2026-08-03
+**Status:** Active
+
+Use the dense S04 action profile in `configs/s04_action_keyframes_dense.json`
+as the preferred dynamic localization evidence. Retain the original eight
+action-boundary pairs and add nine capture-ordered pairs where the S03
+five-FPS timeline has a current backpack mask in at least one named camera and
+a current person mask in at least one camera. Target roughly one-second local
+spacing where evidence permits; do not add DA3-derived XYZ inside the accepted
+frame `462-666` two-camera backpack absence interval.
+
+Every selected pair remains subject to the complete D025 action-pair marker
+gate. Dense sampling does not reuse a stale scale, invent a camera-specific
+fallback, weaken D030's candidate-relative `p20` rule, change D032 anchor
+semantics, or bypass D033 disagreement handling. Coverage checks must be
+derived from exact source identities rather than hard-coded counts so the same
+contracts can verify both the retained eight-pair baseline and the 17-pair
+dense profile.
+
+The accepted dense run contains `17` synchronized DA3 predictions, `44`
+exact mask/depth surfaces and anchors, and `34` target-pair observations.
+D025 accepted `5-6` marker observations per pair; shared scales range from
+`1.093693-1.170350`, with a maximum within-pair relative marker deviation of
+`1.259%`, below the `5%` gate. D033 provides `33` usable measurements. The
+remaining frame `828` person pair is explicitly `disagreement`: two footpoints
+are `0.377 m` apart, beyond the `0.35 m` gate, so neither view is arbitrarily
+made authoritative.
+
+D034 may connect adjacent exact person observations when their anchor kinds
+match, including a separately styled upper-body-to-upper-body segment. It may
+never connect an upper/lower-body fallback into a footpoint segment, convert
+the fallback to floor contact, use a stale endpoint, or create intermediate
+samples. This makes the verifier consistent with D034's original same-kind
+rule; the sparse baseline happened to contain no adjacent body-surface pair.
+
+Against the verified eight-pair baseline, the dense profile raises person
+measured-plus-stale display coverage from `47/160` (`29.375%`) to `76/160`
+(`47.5%`) ticks and backpack coverage from `47/160` to `80/160` (`50.0%`).
+Measured segments increase from `8` to `23`; the `6.803 s` backpack hole
+remains disconnected, and inferred positions remain zero. These figures show
+better temporal evidence coverage and trajectory detail, not absolute XYZ
+accuracy: the capture has no dynamic ground-truth trajectory.
+
+This cadence is not constrained by the prototype MacBook's throughput. Future
+live hardware may schedule DA3 more frequently, including on separate
+accelerators, provided exact-frame joins, D025 gating, honest disagreement,
+and missing-data rules remain unchanged and production throughput is measured
+under its own deployment conditions.

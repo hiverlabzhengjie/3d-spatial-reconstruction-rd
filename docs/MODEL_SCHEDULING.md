@@ -65,8 +65,12 @@ and completion order are diagnostics only.
 - Produces the static-room geometry from synchronized empty-room inputs.
 - Produces current dynamic depth from selected synchronized action-frame
   keyframes.
-- Starts with the provisional S00 action interval of two seconds, which S02/S04
-  must revisit using calibrated scene evidence.
+- S04 replaced the provisional two-second interval with a mask-aware dense
+  action profile: retain the original action boundaries and add roughly
+  one-second observations where current person and backpack masks exist. The
+  retained proof-of-concept cadence ranges from approximately `0.6-1.8 s`
+  locally and does not schedule fabricated measurements inside the accepted
+  two-camera backpack absence interval.
 - Retains frame, camera, timestamp, confidence, model, and raw-output
   provenance.
 - Never converts an old keyframe depth into a new raw observation.
@@ -153,6 +157,12 @@ Model residency and batching are execution-policy choices:
   permits;
 - a future production deployment may assign workers to separate accelerators
   or hosts.
+
+The S04 dense action profile is an evidence-quality choice, not a throughput
+limit derived from the M1 Max. A future live deployment with stronger or
+separate accelerators may run DA3 more frequently, but must preserve the same
+exact-frame identity, D025 scale gate, bounded queues, and explicit missing
+state when no valid observation exists.
 
 Do not reload a heavy model for every frame. Do not enable simultaneous heavy
 MPS calls merely because worker APIs are asynchronous. Any change to the

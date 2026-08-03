@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "purpose": "deterministic_action_spanning_raw_da3_depth_preflight",
+  "source_perception_cadence_fps": 5.0,
+  "selection_policy": "explicit_capture-ordered frames with an observed backpack mask in the named camera and an observed person mask in at least one camera",
+  "keyframes": [
+    {
+      "source_frame_index": 204,
+      "phase_id": "pickup_side_stationary",
+      "selection_reason": "Backpack is stationary in the pickup-side bed zone; Camera A retains the observed bag mask and both cameras retain observed person masks.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 330,
+      "phase_id": "pickup_approach",
+      "selection_reason": "Camera A retains the pickup-side bag mask while Camera B retains the observed approaching person mask.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 408,
+      "phase_id": "pickup_lift_transition",
+      "selection_reason": "Camera A retains the final long-track pickup bag mask and both cameras retain observed person masks.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 462,
+      "phase_id": "carry_early",
+      "selection_reason": "Camera A retains an observed moving bag mask after the pickup track fragments; Camera B retains the person mask.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 666,
+      "phase_id": "carry_reappearance",
+      "selection_reason": "Camera B retains the first observed backpack mask after the accepted two-camera absence interval together with its person mask.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 708,
+      "phase_id": "carry_dropoff_approach",
+      "selection_reason": "Camera B retains an observed moving bag mask and both cameras retain observed person masks near the drop-off side.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 780,
+      "phase_id": "placement_start",
+      "selection_reason": "Camera B retains the first placement-track literal backpack mask and both cameras retain observed person masks.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 858,
+      "phase_id": "placement_end",
+      "selection_reason": "Camera B retains the last placement-track bag mask and its observed person mask near the drop-off zone.",
+      "required_backpack_camera_id": "camera_b"
+    }
+  ]
+}

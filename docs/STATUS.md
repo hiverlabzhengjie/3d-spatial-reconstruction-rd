@@ -1,9 +1,9 @@
 # Project Status
 
-**Last updated:** 2026-08-01
+**Last updated:** 2026-08-03
 **Overall phase:** Implementation
-**Current stage:** S03 - Person and Backpack Perception
-**Stage state:** Complete - awaiting explicit instruction before S04
+**Current stage:** S04 - DA3-Depth 3D Localization and Fusion
+**Stage state:** Complete with known sparse-observation limitations
 
 ## Completed
 
@@ -356,6 +356,264 @@
     `6764aef05556151963b116e40436c8abbd80abd4`, pushed it to `origin/main`,
     and verified the remote branch resolved to that exact commit before the
     final provenance-only documentation update.
+- Began S04 raw action-depth work:
+  - added deterministic action-keyframe configuration and typed DA3 job/run
+    contracts that bind exact synchronized frames to observed S03 masks;
+  - selected eight capture-ordered action pairs from `6.803-28.612 s`, spanning
+    stationary pickup-side evidence through placement while leaving the known
+    two-camera backpack gap unfilled;
+  - ran exact pose-conditioned DA3 Nested 1.1 on all eight pairs at resolution
+    `504` using native MPS float16 with no CPU fallback;
+  - preserved sixteen raw metric depth/confidence planes, exact source/model/
+    calibration provenance, undistorted keyframes, and diagnostic previews;
+  - explicitly applied none of D025's static scale, D026's static confidence
+    policy, or D027's door supplement;
+  - verified all raw arrays, hashes, identities, capture order, schema round
+    trips, metric/unit-scale flags, and absence of S02 corrections;
+  - visually confirmed that representative raw depth maps contain coherent
+    dynamic person and bag silhouettes without yet claiming accepted XYZ;
+  - passed `166` automated tests, Ruff, and strict mypy checks;
+  - recorded exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Completed the S04 exact source-mask to DA3-grid alignment action:
+  - traced and reproduced DA3's unmodified `upper_bound_resize` geometry as
+    `1920x1080 -> 504x284 -> 504x280`, with no crop or padding;
+  - undistorted S03 binary masks with the accepted camera models and used
+    nearest-neighbour interpolation for mask remapping and both resize steps;
+  - independently reproduced all `16` processed RGB images within one channel
+    value and processed intrinsics within `1.235706e-05`;
+  - retained `20` observed person/backpack masks in eight binary `280x504`
+    bundles with exact frame, bundle, DA3-job, perception-job, detection,
+    track, target, transform, artifact, and hash provenance;
+  - visually accepted the eight-phase contact sheet while preserving every
+    source-unavailable observation as missing;
+  - verified hashes, schemas, metadata, binary values, nearest-neighbour
+    mapping, complete action-depth job coverage, and the absence of both XYZ
+    localization and S02 corrections;
+  - passed `169` automated tests, Ruff, strict mypy, lockfile/environment, and
+    whitespace checks;
+  - recorded exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Completed S04 raw in-mask depth/confidence diagnostics and rule selection:
+  - compared whole-mask, two-pixel eroded, adaptive connected-depth-cluster,
+    and person lower-body candidates over all `20` verified action masks;
+  - retained `72` typed diagnostic records plus per-mask RGB/depth/confidence,
+    histogram, candidate-outline, and confidence-sweep artifacts;
+  - rejected full-frame confidence as a dynamic-object validity basis because
+    even its `20th` percentile retained zero samples for some valid person and
+    backpack candidates;
+  - adopted D030 and policy `s04_dynamic_visible_surface_v1`: candidate-relative
+    confidence `p20`, finite positive depth, finite confidence, target-specific
+    visible-surface candidates, median ray depth, explicit sample minimums, and
+    unavailable-without-fallback behavior;
+  - selected the lower `35%` mask extent and a `256`-sample minimum for person,
+    and the largest adaptive connected depth cluster with a `128`-sample
+    minimum for backpack;
+  - verified minimum retained counts of `382` person and `203` backpack
+    samples, with maximum filtered-median shifts of `2.91%` and `0.90%`;
+  - preserved visible-surface semantics without calling the result a person
+    centre, backpack centre, ground contact, anchor, fused position, or XYZ;
+  - passed `175` automated tests, Ruff, strict mypy, lockfile/environment,
+    artifact-integrity, visual-QA, and whitespace checks;
+  - recorded D030 in `docs/DECISIONS.md` and exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Completed S04 exact-frame raw per-camera visible-surface localization:
+  - added typed exact mask/depth joins that require identical action-depth job,
+    bundle, frame, camera, and timestamp identity with zero tolerance and no
+    worker-completion-order association;
+  - applied D030 independently to all `20` retained masks, back-projected every
+    selected sample with processed intrinsics, and transformed it with the
+    accepted explicit `T_world_from_camera`;
+  - retained `12` person and `8` backpack sample clouds plus component-wise
+    camera-frame median aggregates, exact upstream hashes, distributions,
+    transforms, and diagnostic images;
+  - adopted D031 to keep these visible-surface clouds and robust aggregates as
+    raw per-camera measurements, separate from later target anchors and fusion;
+  - verified complete regeneration from exact current-frame sources, maximum
+    reprojection error `2.842171e-14 px`, maximum camera/world round-trip error
+    `3.477764e-15 m`, and maximum returned-pose error `1.395500e-07`;
+  - confirmed all `20` aggregates and all retained samples lie inside the
+    approximate room bounds without clipping or snapping;
+  - visually confirmed plausible pickup-to-drop-off motion while preserving
+    substantial view-dependent raw person-surface disagreement
+    (`0.384-0.679 m` over four paired views) for the next anchor/fusion action;
+  - passed `184` automated tests, Ruff, strict mypy, lockfile/environment,
+    artifact-integrity, schema, visual-QA, and whitespace checks;
+  - recorded D031 in `docs/DECISIONS.md` and exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Completed S04 target-anchor candidate evaluation and pre-fusion policy:
+  - re-verified the D031 prerequisite directly from all `20` raw source clouds
+    before deriving any anchor;
+  - compared `104` typed candidates: six person methods across `12`
+    observations and four backpack methods across `8` observations;
+  - selected the measured world-frame median of the lowest-Z sample quintile
+    as the person tracking anchor, retaining all `12` observations with at
+    least `77` supporting samples while explicitly not calling it ground
+    contact or an anatomical centre;
+  - evaluated a lightweight bottom-pixel ray intersection against the existing
+    surveyed `world Z=0` floor and rejected it because one result left the room
+    bounds and paired disagreement reached `1.110 m`;
+  - retained a separate person ground-contact candidate only when the measured
+    lower-quintile support is at most `0.35 m` above the floor: `6` observations
+    passed and `6` remain unavailable without placeholder XYZ;
+  - selected the world-frame component-wise median of the visible backpack
+    cluster, reducing the stationary pickup maximum separation from `0.136 m`
+    to `0.126 m` and the placed-pair separation from `0.056 m` to `0.045 m`;
+  - persisted all `32` action-job/camera/target anchor states: `20` observed and
+    `12` source-unavailable with no XYZ;
+  - adopted D032's prototype `0.35 m` cross-camera eligibility gate. One person
+    pair at `0.231 m` is eligible for later fusion; three pairs at
+    `0.474-0.759 m` are disagreement states, and all `8` backpack comparisons
+    remain honest single-camera states;
+  - performed no camera fusion, temporal filling, or presentation smoothing;
+  - passed `195` automated tests, Ruff, strict mypy, lockfile/environment,
+    artifact regeneration, schema, visual-QA, and whitespace checks;
+  - recorded D032 in `docs/DECISIONS.md` and exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Completed the S04 D032-gated cross-camera observation layer:
+  - re-verified all `104` D032 candidates, `32` selected camera/target states,
+    and `16` pre-fusion comparisons before combining any anchors;
+  - adopted D033 policy `s04_cross_camera_observation_v1` with the transparent
+    reliability score `sqrt(anchor support) * median retained DA3 confidence /
+    (1 + retained depth relative MAD)`;
+  - normalized reliability scores into contribution weights only for a D032
+    paired-eligible case; disagreement cases retain their scores for diagnosis
+    but receive no weights and no combined XYZ;
+  - produced `16` exact-job target observations: one genuinely fused person
+    observation, `12` explicit single-camera passthroughs, and three paired
+    disagreements without XYZ;
+  - fused frame `204` person anchors with Camera A/B weights `0.652162` and
+    `0.347838`, yielding world XYZ `(0.065857, 2.442960, 0.161857) m` from a
+    `0.230854 m` eligible separation;
+  - preserved all eight backpack observations as single-camera rather than
+    implying two-camera fusion where no paired mask exists;
+  - verified capture order, a maximum source-time difference of `5 ms`, exact
+    source regeneration, stable schemas/hashes, and all `13` emitted XYZ
+    values inside room bounds;
+  - performed no stale carry-forward, temporal interpolation, or presentation
+    smoothing;
+  - passed `207` automated tests, Ruff, strict mypy, lockfile/environment,
+    artifact regeneration, visual-QA, and whitespace checks;
+  - recorded D033 in `docs/DECISIONS.md` and exact evidence in
+    `docs/stages/S04_DA3_DEPTH_LOCALIZATION_FUSION.md`.
+- Formalized and verified D025 action-pair marker scaling before continuing
+  S04 temporal work:
+  - amended D025 with an isolated dynamic profile that preserves raw DA3 depth
+    and confidence and writes only separate corrected-depth artifacts;
+  - detected M40-M42 on all exact undistorted action keyframes and sampled the
+    protected inner `60%` of each known marker square using calibrated
+    per-pixel floor-ray camera-Z rather than a single centre patch;
+  - required one shared scale per synchronized pair, both cameras, at least
+    two accepted markers per camera, at least five observations total, at
+    least `16` valid samples per marker, `5 px` reprojection agreement, and no
+    more than `5%` scale deviation, with no partial or camera-specific fallback;
+  - accepted all eight action pairs from `44` marker observations; scales span
+    `1.093553-1.153414` with median `1.133675`, and the worst marker deviation
+    is `1.2202%`;
+  - visually accepted the full eight-pair marker overlay and independently
+    verified raw prediction hashes, unchanged confidence, exact
+    `corrected = raw * shared scale`, capture order, and artifact hashes;
+  - retained the existing D030-D033 outputs as an unscaled diagnostic baseline;
+    they are not retroactively relabelled as corrected or revalidated.
+- Rebuilt D030-D033 from D025 corrected action-pair depth with margin-aware
+  person validity and consistent footpoint semantics:
+  - retained candidate-relative `p20`, exact mask/depth/frame joins, unchanged
+    raw DA3 depth/confidence, and the existing inspectable D033 reliability
+    formula under policy `s04_corrected_margin_aware_tracking_v1`;
+  - recorded a two-pixel processed-image margin assessment for every person
+    mask and classified the three bottom-truncated views at frames `330`, `408`
+    Camera B, and `462` as upper-body-only evidence rather than treating their
+    image bottoms as feet;
+  - regenerated all `20` corrected per-camera surfaces, `20` anchors, and `16`
+    exact-pair observations directly from the verified D025 artifacts;
+  - derived seven per-camera footpoints only from non-truncated masks whose
+    lowest-Z quintile has at least `32` samples and median height within
+    `-0.10-0.35 m`, then vertically projected only that measured XY to the
+    surveyed `Z=0` floor;
+  - retained elevated lower-body and bottom-truncated upper-body measurements
+    as explicit fallback surface kinds, never as inferred feet;
+  - preferred a synchronized mate's valid footpoint over a weaker body-surface
+    view, resolving frame `708` from Camera B while preserving Camera A as
+    secondary evidence; frame `408` uses Camera A's lower-body surface rather
+    than Camera B's cropped torso;
+  - allowed fusion only between matching anchor kinds within `0.35 m`, yielding
+    two fused and six single-camera person outputs with zero forced mixed-
+    semantic fusion, disagreement holes, or unavailable retained pairs;
+  - preserved honest semantics: five retained frame pairs report person
+    footpoints, frame `408` reports a lower-body surface, and frames `330` and
+    `462` report upper-body surfaces that later presentation must style and
+    connect separately;
+  - independently regenerated every surface, anchor, and pair with maximum
+    reprojection error `2.842171e-14 px` and maximum world/camera round-trip
+    error `3.477764e-15 m`, and visually accepted both diagnostic views;
+  - passed `223` automated tests, Ruff, strict mypy across `50` files,
+    lockfile/environment, artifact regeneration, visual-QA, and whitespace
+    checks;
+  - performed no model inference, temporal filling, stale carry-forward,
+    presentation smoothing, raw-capture modification, or vendor modification.
+- Defined and verified the D034 temporal presentation policy:
+  - added typed policy `s04_temporal_presentation_v1` over the corrected D033
+    layer and authoritative S03 five-FPS capture-time grid;
+  - kept exact corrected observations as the only `measured` states with raw
+    XYZ and spatial authority;
+  - allowed a presentation-only stale hold for at most `1.0 s`, preserving the
+    source timestamp and anchor kind while forbidding raw XYZ, zone updates,
+    event spatial updates, or trajectory extension;
+  - emitted missing-without-XYZ after the stale horizon and performed no
+    interpolation, extrapolation, smoothing, or inferred positioning;
+  - required affirmative occlusion evidence and therefore produced zero
+    claimed occlusions from S03's non-inferential missing detections;
+  - built `320` capture-ordered states: `16` measured, `78` stale, `226`
+    missing, zero inferred, and zero occluded;
+  - selected a `3.0 s` same-kind measured-segment gate inside the observed gap
+    between local intervals up to `2.602 s` and the next `4.202 s` interval;
+  - produced three person footpoint and five backpack visible-cluster segments
+    using exact adjacent endpoints only, with no body-surface, mixed-semantic,
+    stale, or interpolated segment;
+  - preserved the `6.803 s` frame `462-666` backpack gap as disconnected;
+  - independently regenerated every record and segment, verified all hashes,
+    schemas, state authority, CSV coverage, and visually accepted the timeline
+    and world diagnostics;
+  - passed `235` automated tests, Ruff, strict mypy across `53` files,
+    lockfile/environment, artifact regeneration, visual-QA, and whitespace
+    checks.
+- Refined S04 with D035's mask-aware dense dynamic DA3 profile:
+  - retained the original eight action boundaries and added nine observed-mask
+    pairs, producing `17` synchronized DA3 keyframes at approximately
+    `0.6-1.8 s` local spacing where evidence permits;
+  - kept the frame `462-666` two-camera backpack absence interval unsampled
+    and unfilled;
+  - passed D025 for all 17 pairs using `5-6` current marker observations per
+    pair, shared scales of `1.093693-1.170350`, and maximum marker deviation
+    `1.259%` against the `5%` gate;
+  - regenerated `44` exact D030 surfaces, `44` D032 anchors, and `34` D033
+    target-pair records from current corrected depth and masks;
+  - accepted `33` pair measurements and preserved frame `828` person as one
+    explicit `0.377 m` disagreement beyond the `0.35 m` gate;
+  - produced `33` measured, `123` stale, and `164` missing D034 states with
+    zero inferred or claimed-occluded states;
+  - increased person measured-plus-stale display coverage from `47/160` to
+    `76/160` ticks and backpack coverage from `47/160` to `80/160`;
+  - increased exact same-kind measured segments from `8` to `23`, while the
+    known `6.803 s` backpack gap remained disconnected;
+  - retained the sparse run as the verified comparison baseline and recorded
+    that coverage improvement is not an absolute XYZ-accuracy measurement;
+  - independently regenerated the dense raw, D025, alignment, D030-D033,
+    D034, and sparse/dense comparison artifacts; passed `235` automated tests,
+    Ruff, strict mypy across `54` source/script files, lockfile and dry-run
+    environment checks, visual QA, and whitespace checks.
+- Closed the S04 completion gate over the preferred dense D025-D035 chain:
+  - regenerated and visually accepted the final measured-segment preview and
+    temporal-state timeline with all 17 dense keyframe pairs;
+  - independently verified every retained artifact and all missing, stale,
+    disagreement, exact-join, coordinate, and static-depth rejection rules;
+  - confirmed the backpack's measured endpoints move `2.545 m`, from within
+    `0.128 m` XY of the pickup-zone centre to within `0.166 m` of the
+    drop-off-zone centre;
+  - passed all seven S04 roadmap gates without interpolation, fabricated XYZ,
+    stale/static-depth reuse, mixed-semantic fusion, or accuracy overclaim;
+  - re-ran `235` tests, Ruff, strict mypy, lockfile/environment, artifact,
+    visual-QA, and whitespace checks successfully.
 
 ## Current Blockers and Unknowns
 
@@ -398,6 +656,53 @@
   152 throttle-and-drain events, zero drops, zero failures, stable replay job
   IDs, explicit empty-candidate frames, and complete raw artifacts.
 - No S03 completion-gate blocker remains.
+- S04 entry prerequisites were re-verified on 2026-08-01:
+  - the project worktree was clean and `main` matched `origin/main` at
+    `4dcd575`;
+  - both synchronized action-video hashes, the synchronization manifest, the
+    accepted action pose, scene metadata, S03 bounded replay, and target
+    timelines were present and internally consistent;
+  - the cached YOLO checkpoint, exact DA3 model revision, and 161-file DA3
+    vendor fingerprint matched their recorded identities;
+  - 162 automated tests, Ruff, strict mypy, lockfile/environment checks, and
+    `git diff --check` passed.
+- No S04 entry blocker is known. The sparse/fragmented backpack masks and the
+  approximately `17.2-22.0 s` two-camera gap remain accepted limitations that
+  S04 must represent without fabricated XYZ observations.
+- D025 corrected action-pair depth and the margin-aware D030-D033 rebuild are
+  verified for the preferred dense profile's `44` observed masks. The earlier
+  20-mask corrected run remains a verified sparse comparison baseline; the
+  accepted unscaled products remain diagnostic history and are not used by
+  preferred later corrected products.
+- Three person views are bottom-truncated and cannot provide feet. Corrected
+  pair selection uses a synchronized mate's footpoint when available and
+  otherwise preserves a lower- or upper-body surface with its true semantics.
+- The preferred dense person layer has `16` usable outputs from 17 pairs:
+  three fused, 13 single-camera, one explicit disagreement, and zero
+  unavailable localization inputs. Ten outputs are footpoints, two are
+  lower-body surfaces, and four are upper-body surfaces. Same-kind body
+  surfaces may be shown as a separately styled measured segment but must never
+  be joined into or converted into the footpoint track.
+- All `17` corrected backpack records remain single-camera visible-cluster
+  observations because the retained evidence has no same-frame two-camera
+  backpack mask pair. The approximately `17.2-22.0 s` gap remains missing.
+- D032's `0.35 m` comparable-anchor gate and D033 reliability score remain
+  bounded prototype choices, not calibrated probabilities or production
+  accuracy guarantees.
+- D034 now supplies an honest presentation state at all 160 five-FPS ticks per
+  target. Stale coordinates are display-only for at most one second and cannot
+  affect zones, events, or measured tracks; after that the coordinate is
+  absent. No inferred positions or occlusions are claimed.
+- The dense measured trajectory is intentionally segmented. It contains eight
+  person segments and 15 backpack segments. Person body-surface segments
+  remain visually and semantically separate from footpoints; the frame `828`
+  disagreement and `6.803 s` backpack gap remain non-authoritative and
+  disconnected. These are qualitative prototype measurements, not a
+  continuously observed or ground-truth physical path.
+- No S04 completion-gate blocker remains. Its sparse backpack observations,
+  one rejected person disagreement, and absence of surveyed dynamic
+  ground-truth remain documented limitations for S05 rather than fabricated
+  spatial facts.
 
 ## Available Software Inputs
 
@@ -425,8 +730,7 @@
 
 ## Exact Next Action
 
-Stop. Begin S04 only after explicit user instruction. First run
-pose-conditioned DA3 metric depth on selected synchronized action frames that
-contain retained masks, then back-project only valid dynamic mask depth into
-raw per-camera world observations. Do not reuse S02's static-scene scale
-correction for S04 dynamic localization.
+Begin S05 by defining the typed pickup-carry-place interaction state machine
+over S04's verified measured/stale/missing person and backpack observations
+and the accepted pickup/drop-off zones. Keep Qwen asynchronous and prohibit it
+from changing coordinates, identity, timestamps, or zone membership.

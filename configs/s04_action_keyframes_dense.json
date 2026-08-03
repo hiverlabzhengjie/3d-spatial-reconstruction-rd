@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "purpose": "deterministic_action_spanning_raw_da3_depth_preflight",
+  "source_perception_cadence_fps": 5.0,
+  "selection_policy": "Capture-ordered observed-mask keyframes at approximately one-second transport cadence where possible, retaining the original action boundaries and never adding frames inside the accepted two-camera backpack absence interval.",
+  "keyframes": [
+    {
+      "source_frame_index": 204,
+      "phase_id": "pickup_side_stationary",
+      "selection_reason": "Original pickup-side stationary boundary; Camera A retains backpack and person masks and Camera B retains the person mask.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 234,
+      "phase_id": "pickup_side_departure_01",
+      "selection_reason": "One second after the stationary boundary; Camera A retains backpack and person masks and Camera B retains the person mask.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 270,
+      "phase_id": "pickup_side_departure_02",
+      "selection_reason": "Dense pre-pickup transport sample with the backpack in Camera A and the person in both cameras.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 294,
+      "phase_id": "pickup_side_departure_03",
+      "selection_reason": "Dense pre-pickup transport sample with the backpack in Camera A and the person in both cameras.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 330,
+      "phase_id": "pickup_approach",
+      "selection_reason": "Original pickup approach boundary; Camera A retains the backpack and Camera B retains the person.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 360,
+      "phase_id": "pickup_approach_dense_01",
+      "selection_reason": "Dense pickup approach sample with the backpack in Camera A and the person in Camera B.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 390,
+      "phase_id": "pickup_approach_dense_02",
+      "selection_reason": "Dense pickup approach sample with the backpack in Camera A and the person in Camera B.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 408,
+      "phase_id": "pickup_lift_transition",
+      "selection_reason": "Original pickup lift boundary; Camera A retains backpack and person masks and Camera B retains the person mask.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 462,
+      "phase_id": "carry_early",
+      "selection_reason": "Original early-carry boundary before the accepted two-camera backpack absence interval.",
+      "required_backpack_camera_id": "camera_a"
+    },
+    {
+      "source_frame_index": 666,
+      "phase_id": "carry_reappearance",
+      "selection_reason": "Original first backpack reappearance after the accepted absence interval, observed by Camera B with the person.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 684,
+      "phase_id": "carry_reappearance_dense_01",
+      "selection_reason": "Dense carry sample after reappearance; Camera B retains backpack and person masks and Camera A retains the person mask.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 708,
+      "phase_id": "carry_dropoff_approach",
+      "selection_reason": "Original drop-off approach boundary with backpack and person masks retained by Camera B.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 732,
+      "phase_id": "carry_dropoff_approach_dense_01",
+      "selection_reason": "Dense drop-off approach sample with backpack and person masks retained by Camera B.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 780,
+      "phase_id": "placement_start",
+      "selection_reason": "Original placement start boundary with backpack and person masks retained by Camera B and a person mask in Camera A.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 798,
+      "phase_id": "placement_progress_dense_01",
+      "selection_reason": "Dense placement sample with backpack and person masks retained by Camera B and a person mask in Camera A.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 828,
+      "phase_id": "placement_progress_dense_02",
+      "selection_reason": "Dense placement sample with backpack and person masks retained by Camera B and a person mask in Camera A.",
+      "required_backpack_camera_id": "camera_b"
+    },
+    {
+      "source_frame_index": 858,
+      "phase_id": "placement_end",
+      "selection_reason": "Original placement end boundary with backpack and person masks retained by Camera B.",
+      "required_backpack_camera_id": "camera_b"
+    }
+  ]
+}
