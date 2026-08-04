@@ -466,6 +466,5 @@ Completed on 2026-08-04 under D040.
 
 ### Exact Next Action
 
-Publish and verify the S05 stage-close commit and annotated tag, record their
-provenance in `docs/stages/S05_HANDOFF.md`, then stop. Begin S06 only when
-explicitly requested.
+Stop. Begin S06 only when explicitly requested, using the accepted S05
+artifacts and the prerequisites in `docs/stages/S05_HANDOFF.md`.

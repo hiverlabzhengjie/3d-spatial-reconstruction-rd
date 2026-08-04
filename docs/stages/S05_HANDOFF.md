@@ -252,11 +252,16 @@ or custom detector was introduced.
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: `<pending stage-close commit>`
-- Stage-close URL: `<pending remote push>`
-- Annotated tag: `stage-05-interaction-events` (pending)
-- Tag URL: `<pending remote push>`
-- Remote push verified: No (pending stage-close publication)
+- Stage-close commit: `6cdcd12de055f0ffe357d1fd2e8fdcd6c077faab`
+- Stage-close URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/6cdcd12de055f0ffe357d1fd2e8fdcd6c077faab`
+- Annotated tag: `stage-05-interaction-events`
+- Tag URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/tree/stage-05-interaction-events`
+- Remote push verified: Yes. On 2026-08-04, remote `main` resolved to the
+  stage-close commit and the annotated tag dereferenced exactly to it. A
+  subsequent provenance-only documentation commit records these values; the
+  stage-close tag remains fixed at the verified implementation commit.
 - Qwen revision:
   `89644892e4d85e24eaac8bacfd4f463576704203`; YOLO checkpoint SHA-256:
   `a7cd8f929e1903d78a12a48efecab430209f18dc46cb96c3599a5980c63c423c`;
@@ -264,6 +269,5 @@ or custom detector was introduced.
 
 ## Exact Next Action
 
-After the stage-close commit, tag, push, and remote verification are recorded,
-stop. Begin S06 only when explicitly requested, starting with the integrated
+Stop. Begin S06 only when explicitly requested, starting with the integrated
 Rerun/file orchestration contract and supervisor-level worker lifecycle.

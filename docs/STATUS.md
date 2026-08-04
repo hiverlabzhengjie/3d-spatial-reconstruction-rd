@@ -3,7 +3,7 @@
 **Last updated:** 2026-08-04
 **Overall phase:** Implementation
 **Current stage:** S05 - Interaction State and Qwen Events
-**Stage state:** Complete - S05 gate passed; stage-close publication pending
+**Stage state:** Complete - closed and published at `6cdcd12`
 
 ## Completed
 
@@ -745,6 +745,13 @@
     writes, and occlusion without invented locations; and
   - recorded the complete evidence, limitations, reproduction commands, and
     S06 prerequisites in `docs/stages/S05_HANDOFF.md`.
+- Published the S05 stage close:
+  - created commit `6cdcd12de055f0ffe357d1fd2e8fdcd6c077faab` with message
+    `stage(S05): complete interaction state and Qwen events`;
+  - created annotated tag `stage-05-interaction-events`;
+  - pushed the commit to public `origin/main` and pushed the tag; and
+  - verified remote `main` and the dereferenced tag both resolved exactly to
+    the stage-close commit before the provenance-only documentation update.
 
 ## Current Blockers and Unknowns
 
@@ -866,6 +873,5 @@
 
 ## Exact Next Action
 
-Create the required S05 stage-close commit and annotated tag, push both to
-`origin/main`, verify their remote provenance, record it in the S05 handoff,
-and stop without beginning S06.
+Stop. Begin S06 only when explicitly requested, starting with the integrated
+Rerun/file orchestration contract and supervisor-level Qwen worker lifecycle.
