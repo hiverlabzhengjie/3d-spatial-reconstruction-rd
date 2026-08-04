@@ -1,0 +1,23 @@
+{
+  "policy_id": "s05_backpack_visibility_overlay_v1",
+  "timeline_frame_stride": 6,
+  "missing_detection_implies_occlusion": false,
+  "reviewed_occlusion_may_supply_xyz": false,
+  "explicit_review_overrides_detector_visibility": true,
+  "review_intervals": [
+    {
+      "start_source_frame_index": 468,
+      "end_source_frame_index": 660,
+      "visibility_state": "partially_occluded",
+      "evidence_source": "synchronized_video_review",
+      "rationale": "Across the carry interval the backpack is visually attached to the person and repeatedly overlapped by the person's arm or body; its partial visibility does not produce reliable backpack detections.",
+      "evidence_refs": [
+        "artifacts/s03/backpack_viability_dense_20260731/bundle_0540_camera_a_annotated.jpg",
+        "artifacts/s03/backpack_viability_dense_20260731/bundle_0540_camera_b_annotated.jpg",
+        "artifacts/s03/backpack_viability_dense_20260731/bundle_0600_camera_a_annotated.jpg",
+        "artifacts/s03/backpack_viability_dense_20260731/bundle_0600_camera_b_annotated.jpg",
+        "artifacts/s05/interaction_state_20260803_v2/candidate_event_contact_sheet.jpg"
+      ]
+    }
+  ]
+}

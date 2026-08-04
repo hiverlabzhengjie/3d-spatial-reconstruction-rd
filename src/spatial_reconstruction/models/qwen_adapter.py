@@ -140,6 +140,7 @@ class Qwen3VLAdapter:
         images: tuple[Image.Image, ...],
         prompt: str,
         max_new_tokens: int,
+        assistant_prefill: str | None = None,
     ) -> QwenTextResponse:
         """Generate without blocking the caller's event loop."""
 
@@ -150,6 +151,7 @@ class Qwen3VLAdapter:
             images=images,
             prompt=prompt,
             max_new_tokens=max_new_tokens,
+            assistant_prefill=assistant_prefill,
         )
 
     def _generate_sync(
@@ -158,20 +160,24 @@ class Qwen3VLAdapter:
         images: tuple[Image.Image, ...],
         prompt: str,
         max_new_tokens: int,
+        assistant_prefill: str | None,
     ) -> QwenTextResponse:
         normalized_images = _validate_images(images)
         normalized_prompt = _validate_prompt(prompt)
+        normalized_prefill = _validate_assistant_prefill(assistant_prefill)
         if max_new_tokens <= 0 or max_new_tokens > 256:
             raise QwenValidationError("max_new_tokens must be within [1, 256]")
 
         messages = build_multiframe_message(
             images=normalized_images,
             prompt=normalized_prompt,
+            assistant_prefill=normalized_prefill,
         )
         inputs = self._processor.apply_chat_template(
             messages,
             tokenize=True,
-            add_generation_prompt=True,
+            add_generation_prompt=normalized_prefill is None,
+            continue_final_message=normalized_prefill is not None,
             return_dict=True,
             return_tensors="pt",
         )
@@ -212,7 +218,12 @@ class Qwen3VLAdapter:
         )
         if not isinstance(decoded, list) or len(decoded) != 1:
             raise QwenValidationError("Qwen processor returned an invalid decoded response")
-        text = str(decoded[0]).strip()
+        generated_text = str(decoded[0]).strip()
+        text = (
+            generated_text
+            if normalized_prefill is None
+            else normalized_prefill + generated_text
+        )
         if not text:
             raise QwenValidationError("Qwen returned empty decoded text")
 
@@ -229,11 +240,13 @@ def build_multiframe_message(
     *,
     images: tuple[Image.Image, ...],
     prompt: str,
+    assistant_prefill: str | None = None,
 ) -> list[dict[str, object]]:
     """Build one ordered multi-image message without spatial-state fields."""
 
     normalized_images = _validate_images(images)
     normalized_prompt = _validate_prompt(prompt)
+    normalized_prefill = _validate_assistant_prefill(assistant_prefill)
     content: list[dict[str, object]] = []
     frame_count = len(normalized_images)
     for index, image in enumerate(normalized_images, start=1):
@@ -245,7 +258,15 @@ def build_multiframe_message(
         )
         content.append({"type": "image", "image": image})
     content.append({"type": "text", "text": normalized_prompt})
-    return [{"role": "user", "content": content}]
+    messages: list[dict[str, object]] = [{"role": "user", "content": content}]
+    if normalized_prefill is not None:
+        messages.append(
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": normalized_prefill}],
+            }
+        )
+    return messages
 
 
 def uniform_frame_indices(*, total_frame_count: int, requested_count: int) -> tuple[int, ...]:
@@ -352,6 +373,16 @@ def _validate_prompt(prompt: str) -> str:
     if not normalized:
         raise QwenValidationError("Qwen prompt must not be empty")
     return normalized
+
+
+def _validate_assistant_prefill(prefill: str | None) -> str | None:
+    if prefill is None:
+        return None
+    if not prefill or prefill.strip() != prefill or len(prefill) > 80:
+        raise QwenValidationError(
+            "Qwen assistant prefill must be trimmed and at most 80 characters"
+        )
+    return prefill
 
 
 def _model_revision(model: Any) -> str:

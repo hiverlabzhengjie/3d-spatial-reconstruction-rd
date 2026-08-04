@@ -33,7 +33,11 @@ from spatial_reconstruction.localization import (
     make_temporal_record,
     resolve_temporal_presentation,
 )
-from spatial_reconstruction.perception import PerceptionTargetFrameState
+from spatial_reconstruction.perception import (
+    BackpackVisibilityRecord,
+    BackpackVisibilityRunSummary,
+    PerceptionTargetFrameState,
+)
 
 CAMERA_IDS = ("camera_a", "camera_b")
 
@@ -72,6 +76,14 @@ def parse_args() -> argparse.Namespace:
             "camera_b_target_timeline.json"
         ),
     )
+    parser.add_argument(
+        "--visibility-summary",
+        type=Path,
+        help=(
+            "Optional explicit backpack-visibility overlay; detector absence alone "
+            "is insufficient."
+        ),
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args()
 
@@ -86,6 +98,8 @@ def main() -> int:
         "camera_a": _resolve(root, args.camera_a_timeline),
         "camera_b": _resolve(root, args.camera_b_timeline),
     }
+    if args.visibility_summary is not None:
+        paths["visibility"] = _resolve(root, args.visibility_summary)
     output_dir = _resolve(root, args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=False)
 
@@ -97,6 +111,13 @@ def main() -> int:
     camera_states = {
         camera_id: _load_timeline(paths[camera_id]) for camera_id in CAMERA_IDS
     }
+    visibility_summary = (
+        BackpackVisibilityRunSummary.model_validate_json(
+            paths["visibility"].read_text(encoding="utf-8")
+        )
+        if "visibility" in paths
+        else None
+    )
     policy = TemporalPresentationPolicy()
     _verify_prerequisites(
         corrected=corrected,
@@ -104,12 +125,16 @@ def main() -> int:
         corrected_verification=corrected_verification,
         perception_summary=perception_summary,
         camera_states=camera_states,
+        visibility_summary=visibility_summary,
         policy=policy,
     )
 
     presentation_records = _build_timeline(
         corrected.d033_pair_observations,
         camera_states=camera_states,
+        visibility_records=(
+            visibility_summary.records if visibility_summary is not None else ()
+        ),
         policy=policy,
     )
     trajectory_segments = build_measured_trajectory_segments(
@@ -192,6 +217,12 @@ def main() -> int:
         source_camera_a_timeline_sha256=_sha256(paths["camera_a"]),
         source_camera_b_timeline_ref=_relative(paths["camera_b"], root),
         source_camera_b_timeline_sha256=_sha256(paths["camera_b"]),
+        source_visibility_summary_ref=(
+            _relative(paths["visibility"], root) if "visibility" in paths else None
+        ),
+        source_visibility_summary_sha256=(
+            _sha256(paths["visibility"]) if "visibility" in paths else None
+        ),
         presentation_records=presentation_records,
         measured_trajectory_segments=trajectory_segments,
         state_counts=state_counts,
@@ -209,7 +240,8 @@ def main() -> int:
         limitations=(
             "The one-second stale hold is presentation-only and is not a new measurement.",
             "No interpolation, motion extrapolation, inferred position, or smoothing is used.",
-            "Missing S03 detections are not automatically labelled occluded.",
+            "Missing S03 detections are not automatically labelled occluded; only "
+            "the versioned explicit visibility overlay can do so.",
             "Body-surface fallbacks retain their measured semantics and never become footpoints.",
             "Measured segment lines connect exact endpoints only and are not sampled paths.",
         ),
@@ -229,7 +261,10 @@ def main() -> int:
                     for target in PerceptionTarget
                 },
                 "inferred_position_count": 0,
-                "occluded_count": 0,
+                "occluded_count": sum(
+                    record.state is TemporalPresentationState.OCCLUDED
+                    for record in presentation_records
+                ),
             },
             indent=2,
         )
@@ -252,6 +287,7 @@ def _verify_prerequisites(
     corrected_verification: dict[str, Any],
     perception_summary: dict[str, Any],
     camera_states: dict[str, tuple[PerceptionTargetFrameState, ...]],
+    visibility_summary: BackpackVisibilityRunSummary | None,
     policy: TemporalPresentationPolicy,
 ) -> None:
     if (
@@ -281,12 +317,24 @@ def _verify_prerequisites(
             raise ValueError(f"{camera_id} timeline does not contain 320 target states")
         if any(state.frame_identity.camera_id != camera_id for state in states):
             raise ValueError(f"{camera_id} timeline contains another camera")
+    if visibility_summary is not None:
+        if len(visibility_summary.records) != 160:
+            raise ValueError("visibility overlay does not cover all 160 ticks")
+        expected = {
+            state.frame_identity.source_frame_index
+            for state in camera_states["camera_a"]
+            if state.target is PerceptionTarget.BACKPACK
+        }
+        actual = {record.source_frame_index for record in visibility_summary.records}
+        if actual != expected:
+            raise ValueError("visibility overlay frame grid differs from S03")
 
 
 def _build_timeline(
     observations: tuple[CorrectedPairObservationRecord, ...],
     *,
     camera_states: dict[str, tuple[PerceptionTargetFrameState, ...]],
+    visibility_records: tuple[BackpackVisibilityRecord, ...] = (),
     policy: TemporalPresentationPolicy,
 ) -> tuple[TemporalPresentationRecord, ...]:
     state_lookup = {
@@ -318,6 +366,9 @@ def _build_timeline(
     observation_lookup = {
         (record.source_frame_index, record.target): record for record in observations
     }
+    visibility_lookup = {record.source_frame_index: record for record in visibility_records}
+    if len(visibility_lookup) != len(visibility_records):
+        raise ValueError("visibility records are not unique by frame")
     if len(observation_lookup) != len(observations):
         raise ValueError("corrected observations are not unique by frame and target")
     last_measurements: dict[PerceptionTarget, CorrectedPairObservationRecord | None] = {
@@ -332,6 +383,13 @@ def _build_timeline(
             if abs(timestamp - state_b.frame_identity.capture_timestamp_seconds) > 0.01:
                 raise ValueError("cross-camera timeline tick exceeds synchronization bound")
             current = observation_lookup.get((frame, target))
+            visibility = visibility_lookup.get(frame)
+            if target is PerceptionTarget.BACKPACK and visibility is not None and (
+                abs(visibility.capture_timestamp_seconds - timestamp) > 0.01
+                or visibility.camera_a_detection_state is not state_a.state
+                or visibility.camera_b_detection_state is not state_b.state
+            ):
+                raise ValueError("visibility evidence differs from the paired S03 tick")
             resolution = resolve_temporal_presentation(
                 source_frame_index=frame,
                 capture_timestamp_seconds=timestamp,
@@ -340,7 +398,11 @@ def _build_timeline(
                 camera_b_perception_state=state_b.state,
                 current_observation=current,
                 last_measurement=last_measurements[target],
-                confirmed_occluded=False,
+                confirmed_occluded=(
+                    target is PerceptionTarget.BACKPACK
+                    and visibility is not None
+                    and visibility.confirmed_occluded_for_localization
+                ),
                 policy=policy,
             )
             records.append(

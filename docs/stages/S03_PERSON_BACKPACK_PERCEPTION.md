@@ -440,6 +440,17 @@ not automatically labelled occluded: image-plane absence alone does not prove
 the physical cause. S04 may use synchronized depth and multi-view evidence but
 must not convert these missing frames into fabricated coordinates.
 
+### Post-close D037 clarification (2026-08-03)
+
+The retained S03 result remains correct as detector evidence: `missing` means
+no selected bag candidate and does not establish why. The derivation contract
+now states explicitly that missing detections require separate synchronized-
+video visibility evidence and that neither visibility nor occlusion evidence
+may supply XYZ. S05 owns a versioned overlay rather than rewriting these
+closed S03 artifacts. For frames `468-660`, that overlay records the user's
+affirmative synchronized-video review as `partially_occluded` while preserving
+both cameras' original missing/observed/untracked detector states.
+
 Artifacts are retained under
 `artifacts/s03/target_timeline_5fps_20260801/`:
 

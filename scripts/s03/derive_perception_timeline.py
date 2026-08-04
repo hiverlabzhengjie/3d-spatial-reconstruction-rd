@@ -104,6 +104,12 @@ def main() -> int:
         "derivation_only": True,
         "inference_rerun": False,
         "occlusion_inference": False,
+        "visibility_assessment_policy": {
+            "detector_missing_implies_occlusion": False,
+            "explicit_synchronized_video_evidence_required": True,
+            "visibility_is_independent_of_detector_presence": True,
+            "visibility_evidence_may_supply_xyz": False,
+        },
         "missing_state_meaning": (
             "no selected candidate in this camera frame; occlusion is not inferred"
         ),

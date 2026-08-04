@@ -27,14 +27,21 @@ class FakeBatch(dict[str, torch.Tensor]):
 
 
 class FakeProcessor:
-    def __init__(self, *, decoded: str = "A robot moves forward.") -> None:
+    def __init__(
+        self,
+        *,
+        decoded: str = "A robot moves forward.",
+        expect_prefill: bool = False,
+    ) -> None:
         self.decoded = decoded
+        self.expect_prefill = expect_prefill
         self.messages: object = None
 
     def apply_chat_template(self, messages: object, **kwargs: object) -> FakeBatch:
         self.messages = messages
         assert kwargs["tokenize"] is True
-        assert kwargs["add_generation_prompt"] is True
+        assert kwargs["add_generation_prompt"] is (not self.expect_prefill)
+        assert kwargs["continue_final_message"] is self.expect_prefill
         return FakeBatch(
             {
                 "input_ids": torch.tensor([[1, 2, 3]]),
@@ -195,6 +202,33 @@ def test_async_generation_returns_bounded_text_only_contract() -> None:
         "output_token_count",
         "output_token_ids",
         "input_shapes",
+    }
+
+
+def test_generation_continues_and_reconstructs_bounded_assistant_prefill() -> None:
+    prefix = '{"event_label":"'
+    processor = FakeProcessor(
+        decoded='carry","evidence_strength":"strong"}',
+        expect_prefill=True,
+    )
+    adapter = make_adapter(processor=processor)
+
+    response = asyncio.run(
+        adapter.generate(
+            images=make_images(),
+            prompt="Return compact event JSON.",
+            max_new_tokens=32,
+            assistant_prefill=prefix,
+        )
+    )
+
+    assert response.text == (
+        '{"event_label":"carry","evidence_strength":"strong"}'
+    )
+    assert isinstance(processor.messages, list)
+    assert processor.messages[-1] == {
+        "role": "assistant",
+        "content": [{"type": "text", "text": prefix}],
     }
 
 

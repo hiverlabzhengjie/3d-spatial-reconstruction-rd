@@ -1,9 +1,9 @@
 # Project Status
 
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 **Overall phase:** Implementation
-**Current stage:** S04 - DA3-Depth 3D Localization and Fusion
-**Stage state:** Complete with known sparse-observation limitations
+**Current stage:** S05 - Interaction State and Qwen Events
+**Stage state:** Complete - S05 gate passed; stage-close publication pending
 
 ## Completed
 
@@ -620,6 +620,132 @@
     that the close commit is on remote `main` and the dereferenced tag resolves
     exactly to it; later `main` updates are provenance-only documentation.
 
+## Completed S05
+
+- Began S05 after re-verifying the completed S04 handoff, preferred dense
+  D033/D034 artifacts, accepted pickup/drop-off zones, exact Qwen model cache,
+  and clean `main == origin/main` repository state.
+- Adopted D036 and implemented typed policy `s05_interaction_state_v1`:
+  - the deterministic states are `unknown`, `at_pickup`, `pickup`, `carry`,
+    `place`, and explicitly evidenced `occluded`;
+  - only paired current `measured` S04 records may establish zone membership,
+    pickup departure, or person/backpack proximity;
+  - stale, missing, inferred, and occluded records carry no transition XYZ;
+  - unknown/occluded ticks may retain the last authoritative phase as memory
+    but do not claim a current spatial state; and
+  - Qwen is structurally prohibited from changing interaction spatial state.
+- Added focused tests for pickup-carry-place transitions, an unknown backpack
+  gap, stale-coordinate rejection, explicit occlusion, unproven sequences,
+  person anchor-kind preservation, capture ordering, persistent schema round
+  trips, and Qwen isolation; all `243` project tests, Ruff, strict mypy,
+  lockfile/environment, and whitespace checks pass.
+- Applied D036 to all `160` paired ticks from the verified dense D034 timeline
+  and independently regenerated the result:
+  - eight ticks are `at_pickup`, one is authoritative `pickup`, eight are
+    `place`, and 143 are honestly `unknown`;
+  - pickup is detected at frame `462` / `15.406667 s` and first placement at
+    frame `666` / `22.210 s`;
+  - one deduplicated pickup candidate and one deduplicated place candidate
+    were produced; repeated measured placement ticks do not create duplicates;
+  - no tick contains invented XYZ, Qwen-controlled spatial state, unsupported
+    occlusion, or an unknown state with spatial authority; and
+  - the known backpack gap remains unfilled, so no separate measured carry
+    state is claimed.
+- Visually accepted both synchronized cameras across the start, transition,
+  and end of each four-second candidate window. The pickup window shows the
+  bag leaving the blue bed zone, the midpoint shows visible carrying while the
+  spatial state remains unknown, and the place window shows approach and
+  placement at the white floor zone. The initial thresholds required no
+  tuning.
+- Reviewed the S03-S05 occlusion/carry gap and superseded D036 with D037:
+  - S03 remains an immutable detector-presence timeline; its derivation now
+    explicitly declares that missing detections require separate visibility
+    evidence and never imply occlusion or XYZ;
+  - a versioned visibility overlay covers all 160 ticks and records 47
+    detector-supported `visible`, 33 review-backed `partially_occluded`, and
+    80 `unknown` ticks;
+  - the 33 partial-occlusion records span frames `468-660`, retain each
+    camera's original detector state, and supply zero coordinates;
+  - an occlusion-aware D034 run independently regenerates 33 backpack
+    `occluded` records while preserving all 33 measured records, all 23 exact
+    measured segments, and the disconnected `6.803 s` backpack gap;
+  - S05 v2 separates interaction phase, visibility, and localization rather
+    than placing carry and occlusion in one enum;
+  - frames `468-660` now coexist as `carry`, `partially_occluded`, and
+    `unavailable`, with null backpack XYZ and zero spatial authority; and
+  - the event candidates are pickup at frame `462`, carry at frame `468`, and
+    place at frame `666`.
+- Adopted D038 and verified the pre-inference Qwen event-worker layer:
+  - created one stable pickup, carry, and place job from the verified D037
+    candidates, each with six ordered before/transition/after frames across
+    Camera A and Camera B;
+  - bound every frame to synchronized source-video hashes, frame indices,
+    capture timestamps, capture session, and synchronization manifest;
+  - fixed the exact passed MPS model revision, deterministic decoding,
+    `96`-token bound, `45 s` timeout, and at most one repair attempt;
+  - implemented a capacity-three offline throttle queue with logical-event
+    deduplication, bounded sequential retries, explicit cancellation and
+    future-live drop accounting;
+  - implemented strict event JSON plus typed completed, failed, timed-out, and
+    invalid-output results, with safe `unknown` fallback for every
+    non-completed outcome;
+  - verified duplicate coalescing, throttling, drop-oldest accounting,
+    capture ordering, timeout/failure isolation, invalid-output repair, schema
+    tamper detection, and rejection of spatial output fields; and
+  - generated and independently regenerated the three-job plan with zero
+    inference results and zero forbidden spatial job fields; and
+  - passed 256 project tests, Ruff, strict mypy across 68 source/script files,
+    lock/environment checks, artifact regeneration, and whitespace checks.
+- Executed the three verified Qwen jobs under D039:
+  - bounded the 18 actual inference frames to `768` pixels maximum dimension
+    after an interrupted full-resolution diagnostic exposed non-preemptive
+    thread-timeout behavior;
+  - loaded the exact approved revision once on MPS in float16 and processed
+    pickup, carry, and place serially with one bounded repair each;
+  - retained six deterministic 96-token raw responses with token/tensor
+    diagnostics; each was truncated/malformed JSON and therefore became a
+    typed `invalid_output` with final `unknown` interpretation;
+  - measured `2219` input tokens and `8.23-8.72 s` per bounded request, below
+    the `45 s` attempt timeout;
+  - observed that the raw diagnostic prose visibly names pickup, carry, and
+    place, including the previously disputed carry interval, but promoted none
+    of it to a schema-valid event fact or spatial state; and
+  - independently verified model/runtime identity, 18 frame artifacts, all
+    attempts and final results, raw-token retention, contact-sheet decoding,
+    hashes, and the absence of a spatial write interface; and
+  - passed all 256 project tests, Ruff, strict mypy across 86 source/script
+    files, lock/environment checks, and whitespace checks.
+- Completed the D040 Qwen response and evidence-window correction:
+  - retained v2 as an invalid-output experiment after its compact `160`-token
+    prompt still produced deterministic unquoted, verbose objects;
+  - added an identity-bound assistant JSON prefill in v3, producing valid
+    pickup and place responses while honestly exposing that the carry-onset
+    window still looked like pickup;
+  - preserved frame `468` as the carry transition but centred v4 semantic
+    evidence at frame `567` / `18.900 s`, with both cameras at frames `507`,
+    `567`, and `627` across the sustained carry interval;
+  - obtained schema-valid first-attempt pickup, carry, and place matches with
+    qualitative strong evidence, `48-52` output tokens, `4.76-5.13 s`
+    processing, zero retry, and zero response normalization;
+  - kept `matches_candidate` and the no-spatial-claims boundary
+    application-owned rather than model-controlled;
+  - visually accepted the corrected contact sheet and independently verified
+    exact model/runtime identity, source/review frames, all artifact hashes,
+    three direct matches, raw diagnostics, and no spatial write interface; and
+  - preserved all v1-v3 artifacts as backward-compatible diagnostic history;
+    and
+  - passed all 259 project tests, Ruff, strict mypy across 86 source/script
+    files, lock/environment checks, and whitespace checks.
+- Closed the S05 completion gate without weakening any criterion:
+  - freshly regenerated the visibility overlay, occlusion-aware presentation,
+    orthogonal interaction timeline, Qwen v4 plan, and Qwen execution from
+    retained source hashes;
+  - confirmed a sensible pickup-carry-place sequence, bounded Qwen
+    failure/unknown behavior, schema-valid accepted output, zero Qwen spatial
+    writes, and occlusion without invented locations; and
+  - recorded the complete evidence, limitations, reproduction commands, and
+    S06 prerequisites in `docs/stages/S05_HANDOFF.md`.
+
 ## Current Blockers and Unknowns
 
 - No S00 completion-gate blocker remains.
@@ -697,7 +823,9 @@
 - D034 now supplies an honest presentation state at all 160 five-FPS ticks per
   target. Stale coordinates are display-only for at most one second and cannot
   affect zones, events, or measured tracks; after that the coordinate is
-  absent. No inferred positions or occlusions are claimed.
+  absent. The original dense artifact claims no occlusion. The versioned D037
+  correction consumes explicit visibility evidence and labels 33 backpack
+  ticks occluded without coordinates or spatial authority.
 - The dense measured trajectory is intentionally segmented. It contains eight
   person segments and 15 backpack segments. Person body-surface segments
   remain visually and semantically separate from footpoints; the frame `828`
@@ -708,6 +836,9 @@
   one rejected person disagreement, and absence of surveyed dynamic
   ground-truth remain documented limitations for S05 rather than fabricated
   spatial facts.
+- No S05 completion-gate blocker remains. Detector unreliability, the
+  unlocalized carry interval, qualitative Qwen evidence, and hard process
+  supervision assigned to S06 remain explicit accepted limitations.
 
 ## Available Software Inputs
 
@@ -735,7 +866,6 @@
 
 ## Exact Next Action
 
-Begin S05 by defining the typed pickup-carry-place interaction state machine
-over S04's verified measured/stale/missing person and backpack observations
-and the accepted pickup/drop-off zones. Keep Qwen asynchronous and prohibit it
-from changing coordinates, identity, timestamps, or zone membership.
+Create the required S05 stage-close commit and annotated tag, push both to
+`origin/main`, verify their remote provenance, record it in the S05 handoff,
+and stop without beginning S06.

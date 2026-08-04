@@ -961,6 +961,27 @@ regenerates every presentation record and measured segment.
 No new method, model, dependency, motion prior, or floor operation was
 introduced.
 
+## Post-close D037 Occlusion-evidence Correction
+
+Added on 2026-08-03 without reopening S04 or modifying any closed artifact.
+The original D034 result correctly declined to infer occlusion from missing
+detector output, but its builder passed `confirmed_occluded=False` at every
+tick and therefore had no way to consume later affirmative evidence.
+
+The builder and verifier now accept an optional, hash-bound S05 backpack-
+visibility summary. A current corrected measurement still wins. Otherwise a
+review-backed partial/full occlusion produces the existing D034 `occluded`
+state with null raw/presentation XYZ and no zone or trajectory authority.
+Detector absence by itself still cannot create that state.
+
+The non-destructive corrected run at
+`artifacts/s04/temporal_presentation_occlusion_aware_20260803_v2/` independently
+regenerates all 320 records and 23 measured segments. Counts are 33 measured,
+118 stale, 136 missing, 33 occluded, and zero inferred. All 33 occluded rows
+belong to the backpack at frames `468-660`; all have null XYZ and zero spatial
+authority. The original 33 measurements, measured segments, and disconnected
+`6.803 s` backpack gap are unchanged.
+
 ## D035 Dense Dynamic-Keyframe Refinement
 
 Completed on 2026-08-03 as a separate, non-destructive run from the verified

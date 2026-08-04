@@ -7,6 +7,14 @@ from spatial_reconstruction.perception.timeline import (
     PerceptionTargetFrameState,
     build_target_frame_states,
 )
+from spatial_reconstruction.perception.visibility import (
+    BackpackVisibilityPolicy,
+    BackpackVisibilityRecord,
+    BackpackVisibilityRunSummary,
+    BackpackVisibilityState,
+    VisibilityEvidenceSource,
+    VisibilityReviewInterval,
+)
 from spatial_reconstruction.perception.worker import (
     BoundedPerceptionQueue,
     PerceptionFrameResult,
@@ -24,6 +32,10 @@ from spatial_reconstruction.perception.yolo_processor import YOLOByteTrackProces
 
 __all__ = [
     "BoundedPerceptionQueue",
+    "BackpackVisibilityPolicy",
+    "BackpackVisibilityRecord",
+    "BackpackVisibilityRunSummary",
+    "BackpackVisibilityState",
     "CandidateMaskMetrics",
     "ImagePlaneVisibility",
     "PerceptionFrameResult",
@@ -37,6 +49,8 @@ __all__ = [
     "QueueOverflowPolicy",
     "QueueSubmission",
     "QueueSubmissionDisposition",
+    "VisibilityEvidenceSource",
+    "VisibilityReviewInterval",
     "YOLOByteTrackProcessor",
     "build_target_frame_states",
     "process_next_perception_item",

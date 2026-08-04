@@ -1064,3 +1064,207 @@ live hardware may schedule DA3 more frequently, including on separate
 accelerators, provided exact-frame joins, D025 gating, honest disagreement,
 and missing-data rules remain unchanged and production throughput is measured
 under its own deployment conditions.
+
+## D036 - Measured-only pickup-carry-place interaction state
+
+**Date:** 2026-08-03
+**Status:** Superseded by D037
+
+Use typed policy `s05_interaction_state_v1` as the deterministic spatial-state
+authority for S05. The state set is `unknown`, `at_pickup`, `pickup`, `carry`,
+`place`, and `occluded`. State records remain capture-time ordered and retain
+the exact S04 person/backpack record identities and original anchor kinds.
+
+Only paired current `measured` D034 records with `may_update_zone_membership`
+may establish interaction spatial facts. Horizontal XY distance is used for
+the two accepted circular zones and for person/backpack proximity because the
+zone boundaries are horizontal and the person's footpoint/lower-body/
+upper-body and backpack visible-cluster Z coordinates have deliberately
+different semantics. The original anchor kind remains explicit; XY comparison
+does not convert a body surface into a footpoint or object centre.
+
+The initial bounded prototype policy uses the accepted `0.30 m` zone radii, a
+`0.30 m` minimum pickup-centre departure distance, and a `1.0 m` maximum
+person/backpack XY distance for pickup/carry evidence. These are inspectable
+event-trigger thresholds, not calibrated probabilities or accuracy claims.
+They must be reviewed against the retained synchronized recording before the
+state-machine artifact is accepted.
+
+An authoritative backpack measurement inside the pickup zone establishes
+`at_pickup`. A later measured departure outside that zone becomes `pickup`
+only when current measured person/backpack proximity also passes. A subsequent
+measured outside-zone observation with current proximity becomes `carry`. A
+current backpack measurement inside the drop-off zone becomes `place` only
+after pickup has already been confirmed. An initial drop-off observation may
+not invent a prior pickup.
+
+Stale, missing, and inferred records cannot supply zone membership, movement,
+or proximity. They produce `unknown`. `Occluded` requires a source record that
+is already explicitly `occluded`; it has no coordinate. Unknown and occluded
+ticks may preserve the last authoritative phase as non-spatial machine memory,
+so a later current measurement can be evaluated in sequence, but the gap
+itself remains unknown and no path or position is filled.
+
+Qwen is outside this transition authority. Its future schema may describe a
+candidate clip, but it cannot change state-machine coordinates, identities,
+capture timestamps, zone membership, transition facts, or phase memory.
+
+The retained dense D034 timeline and synchronized videos were subsequently
+used to validate the initial thresholds without changing them. The accepted
+run contains 160 interaction ticks: eight `at_pickup`, one authoritative
+`pickup`, eight `place`, and 143 `unknown`. Pickup occurs at frame `462`
+(`15.406667 s`) when the backpack is `0.338 m` from the pickup centre and the
+current person/backpack XY distance is `0.822 m`; both pass their respective
+`0.30 m` and `1.0 m` gates. Place first occurs at frame `666` (`22.210 s`)
+inside the accepted drop-off zone after pickup has been confirmed.
+
+There is no separate current measured `carry` state in this retained spatial
+timeline. The synchronized video visibly shows the person carrying the
+backpack at the interval midpoint, but the corresponding S04 backpack
+localization gap remains `unknown`. This is accepted honest missing-data
+behavior, not a reason to widen thresholds or fabricate a coordinate. The
+bounded pickup and place windows, plus the explicitly non-authoritative carry
+interval review frame, are suitable inputs for later semantic review.
+
+## D037 - Orthogonal interaction phase, visibility, and localization
+
+**Date:** 2026-08-03
+**Status:** Active
+
+Replace D036's single mutually exclusive state axis with three independent
+axes under policies `s05_backpack_visibility_overlay_v1` and
+`s05_semantic_interaction_v2`:
+
+- interaction phase: `unknown`, `at_pickup`, `pickup`, `carry`, or `place`;
+- reviewed optical visibility: `visible`, `partially_occluded`,
+  `fully_occluded`, `out_of_view`, or `unknown`; and
+- backpack localization availability: `measured`, `stale`, or `unavailable`.
+
+The retained S03 detector timeline remains an immutable record of detector
+presence and still performs no occlusion inference. A missing detector result
+does not imply occlusion. A separate, versioned overlay may label visibility
+only from affirmative evidence. For the reviewed frame `468-660` carry
+interval, synchronized video establishes `partially_occluded`: the backpack is
+repeatedly overlapped by the person's arm/body and remains partly visible in
+some views despite unreliable bag detections. This label supplies no XYZ.
+
+D034 may consume that explicit overlay. A current corrected measurement still
+takes precedence; otherwise an explicitly partially/fully occluded backpack
+tick becomes `occluded` with null raw and presentation XYZ, no anchor, no zone
+authority, and no measured-trajectory authority. Existing S03/S04 artifacts
+remain unchanged as diagnostic history; the occlusion-aware S04 result is a
+new derived artifact.
+
+After a measured pickup, S05 may retain a bounded semantic `carry` phase by
+sequence continuity until a measured place, even while localization is
+unavailable. The retained maximum unlocalized-carry horizon is `10.0 s`,
+which contains the verified `6.803 s` pickup-to-place localization gap without
+making a production timing or probability claim. Sequence continuity has
+semantic authority only: it cannot supply XYZ, proximity, zones, movement,
+track points, or current spatial authority.
+
+Thus the accepted carry ticks simultaneously report `phase=carry`,
+`visibility=partially_occluded`, and `localization=unavailable`, with null
+backpack XYZ. Qwen may later describe or confirm a separate event review, but
+cannot change coordinates, track identity, capture timestamps, zones, or the
+provenance of these deterministic records.
+
+## D038 - Bounded schema-only Qwen event review
+
+**Date:** 2026-08-03
+**Status:** Active
+
+Use policy `s05_qwen_event_review_v1` to turn the three verified D037 event
+candidates into independent Qwen review jobs. Each job uses the exact approved
+`Qwen/Qwen3-VL-2B-Instruct` revision
+`89644892e4d85e24eaac8bacfd4f463576704203`, deterministic decoding, a
+`96`-token output bound, a `45 s` attempt timeout, and at most two attempts.
+
+Each event receives six ordered synchronized frames: before, transition, and
+after, with Camera A followed by Camera B at every time. Frame and video
+references retain source indices, capture timestamps, SHA-256 hashes, capture
+session, and synchronization-manifest provenance. These inputs are semantic
+review evidence only and contain no spatial-write interface.
+
+The recorded-MP4 queue has capacity three and uses throttle-and-drain rather
+than dropping. Deduplication keys bind candidate identity, prompt hash, model
+revision, and policy while excluding processing time. A duplicate pending,
+in-flight, or completed logical event is coalesced. A retry is accepted only
+after a failed, timed-out, invalid, cancelled, or dropped attempt, must be the
+next sequential attempt, and may not exceed attempt two. Future live use may
+select the same contract's explicit drop-oldest policy, but every drop remains
+observable and retryable within the same bound.
+
+Qwen must return one strict JSON object with `event_label`,
+`matches_candidate`, qualitative `evidence_strength`, concise `summary`, up to
+four `visible_evidence` items, `uncertainty`, and
+`spatial_claims_present=false`. Labels are `pickup`, `carry`, `place`, or
+`unknown`; evidence strength is qualitative, not a calibrated probability.
+Invalid JSON/schema, timeout, or processor failure becomes a typed terminal
+result containing an `unknown` interpretation. Raw invalid text may be
+retained for diagnosis, but it cannot become an event fact.
+
+Neither jobs nor results expose coordinate, track-identity, capture-time,
+zone-membership, or spatial-authority write fields. Qwen annotations remain
+separate from the deterministic D037 state records. This decision adds no new
+model, dependency, or external method.
+
+## D039 - Invalid Qwen prose remains diagnostic; bound inference images
+
+**Date:** 2026-08-04
+**Status:** Active
+
+The first D038 execution establishes two operational boundaries. Actual Qwen
+event images are downscaled without enlargement to a maximum dimension of
+`768` pixels and retained byte-for-byte with their source-frame provenance.
+This keeps the six-image request within practical local MPS cost while leaving
+the synchronized source videos unchanged.
+
+An invalid model response retains its raw text, token IDs/counts, input tensor
+shapes, timing, and validation error, but its semantic interpretation remains
+`unknown`. This applies even when the prose appears visually correct. In the
+first execution, all pickup, carry, and place attempts reached the D038
+`96`-token ceiling, emitted truncated fenced JSON, and repeated identically on
+repair. Their visible descriptions are useful failure evidence but are not
+event facts and cannot affect D037 phase, visibility, localization, or any
+spatial authority.
+
+The full-resolution diagnostic also confirmed that an `asyncio` thread timeout
+does not preempt an in-progress MPS call. S05 therefore treats the whole Qwen
+runner as the isolatable worker-process boundary; S06 must implement and test
+supervisor-level termination/restart for a hard timeout. No concurrent heavy
+MPS inference is authorized.
+
+## D040 - Prefilled JSON and a separate carry review centre
+
+**Date:** 2026-08-04
+**Status:** Active
+
+Supersede D038's model-facing v1 response format for accepted S05 execution
+with `s05_qwen_event_review_v4`, while retaining v1-v3 artifacts as immutable
+diagnostic history. The generation bound is `160` tokens. The model supplies
+only `event_label`, qualitative `evidence_strength`, `summary`, one concise
+`visible_evidence` string, and `uncertainty`. The application derives
+`matches_candidate` from the expected event and returned label and fixes
+`spatial_claims_present=false`; Qwen does not control either boundary.
+
+V3/V4 include the exact assistant prefill `{"event_label":"` in the prompt
+contract and its hash. Generation continues that assistant message, and the
+adapter reconstructs the retained raw response from the immutable prefill plus
+generated tokens. This is input-side structured generation, not post-hoc
+repair: malformed or incomplete continuations still become `invalid_output`
+and `unknown`. A single complete `json` code fence is the only permitted,
+explicitly recorded normalization, though the accepted run required none.
+
+Separate an event's authoritative transition identity from its semantic review
+centre. Pickup and place use their transition frames. Carry preserves frame
+`468` / `15.606667 s` as the sequence-continuity onset, but Qwen review is
+centred at frame `567` / `18.900000 s`, the frame-aligned midpoint before the
+measured place event. Its three paired review times use frames `507`, `567`,
+and `627`. This prevents the pickup motion at carry onset from dominating the
+sustained-carry review without moving the transition, inventing localization,
+or granting Qwen spatial authority.
+
+The accepted v4 execution returned direct schema-valid pickup, carry, and
+place matches on attempt one, with no retry or normalization. Evidence strength
+remains a qualitative model description, not probability or spatial truth.

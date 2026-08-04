@@ -24,7 +24,11 @@ from spatial_reconstruction.localization import (
     make_temporal_record,
     resolve_temporal_presentation,
 )
-from spatial_reconstruction.perception import PerceptionTargetFrameState
+from spatial_reconstruction.perception import (
+    BackpackVisibilityRecord,
+    BackpackVisibilityRunSummary,
+    PerceptionTargetFrameState,
+)
 
 CAMERA_IDS = ("camera_a", "camera_b")
 
@@ -66,8 +70,19 @@ def main() -> int:
         "camera_a": summary.source_camera_a_timeline_sha256,
         "camera_b": summary.source_camera_b_timeline_sha256,
     }
+    visibility_summary: BackpackVisibilityRunSummary | None = None
+    if summary.source_visibility_summary_ref is not None:
+        assert summary.source_visibility_summary_sha256 is not None
+        source_paths["visibility"] = _resolve(
+            root, Path(summary.source_visibility_summary_ref)
+        )
+        source_hashes["visibility"] = summary.source_visibility_summary_sha256
     for name, path in source_paths.items():
         _require_hash(path, source_hashes[name])
+    if "visibility" in source_paths:
+        visibility_summary = BackpackVisibilityRunSummary.model_validate_json(
+            source_paths["visibility"].read_text(encoding="utf-8")
+        )
     corrected = CorrectedTrackingRunSummary.model_validate_json(
         source_paths["corrected"].read_text(encoding="utf-8")
     )
@@ -89,6 +104,9 @@ def main() -> int:
     regenerated_records = _regenerate_records(
         corrected.d033_pair_observations,
         camera_states=camera_states,
+        visibility_records=(
+            visibility_summary.records if visibility_summary is not None else ()
+        ),
         policy=summary.policy,
     )
     if regenerated_records != summary.presentation_records:
@@ -144,6 +162,9 @@ def main() -> int:
         records=regenerated_records,
         segments=regenerated_segments,
         observations=corrected.d033_pair_observations,
+        visibility_records=(
+            visibility_summary.records if visibility_summary is not None else ()
+        ),
         policy=summary.policy,
     )
 
@@ -181,7 +202,11 @@ def main() -> int:
         "known_backpack_gap_bridged": False,
         "raw_xyz_on_non_measured_state_count": 0,
         "inferred_position_count": 0,
-        "claimed_occlusion_count": 0,
+        "claimed_occlusion_count": sum(
+            record.state is TemporalPresentationState.OCCLUDED
+            for record in regenerated_records
+        ),
+        "occlusion_without_explicit_evidence_count": 0,
         "stale_zone_update_count": 0,
         "stale_trajectory_extension_count": 0,
         "mixed_semantic_segment_count": 0,
@@ -199,6 +224,7 @@ def _regenerate_records(
     observations: tuple[CorrectedPairObservationRecord, ...],
     *,
     camera_states: dict[str, tuple[PerceptionTargetFrameState, ...]],
+    visibility_records: tuple[BackpackVisibilityRecord, ...] = (),
     policy: TemporalPresentationPolicy,
 ) -> tuple[TemporalPresentationRecord, ...]:
     state_lookup = {
@@ -226,6 +252,9 @@ def _regenerate_records(
         (observation.source_frame_index, observation.target): observation
         for observation in observations
     }
+    visibility_lookup = {record.source_frame_index: record for record in visibility_records}
+    if len(visibility_lookup) != len(visibility_records):
+        raise ValueError("visibility records are not unique by frame")
     last_measurements: dict[PerceptionTarget, CorrectedPairObservationRecord | None] = {
         target: None for target in PerceptionTarget
     }
@@ -238,6 +267,13 @@ def _regenerate_records(
             if abs(timestamp - state_b.frame_identity.capture_timestamp_seconds) > 0.01:
                 raise ValueError("source tick exceeds synchronization bound")
             current = observation_lookup.get((frame, target))
+            visibility = visibility_lookup.get(frame)
+            if target is PerceptionTarget.BACKPACK and visibility is not None and (
+                abs(visibility.capture_timestamp_seconds - timestamp) > 0.01
+                or visibility.camera_a_detection_state is not state_a.state
+                or visibility.camera_b_detection_state is not state_b.state
+            ):
+                raise ValueError("visibility evidence differs from paired S03 tick")
             resolution = resolve_temporal_presentation(
                 source_frame_index=frame,
                 capture_timestamp_seconds=timestamp,
@@ -246,7 +282,11 @@ def _regenerate_records(
                 camera_b_perception_state=state_b.state,
                 current_observation=current,
                 last_measurement=last_measurements[target],
-                confirmed_occluded=False,
+                confirmed_occluded=(
+                    target is PerceptionTarget.BACKPACK
+                    and visibility is not None
+                    and visibility.confirmed_occluded_for_localization
+                ),
                 policy=policy,
             )
             records.append(
@@ -298,6 +338,7 @@ def _verify_semantics(
     records: tuple[TemporalPresentationRecord, ...],
     segments: tuple[MeasuredTrajectorySegment, ...],
     observations: tuple[CorrectedPairObservationRecord, ...],
+    visibility_records: tuple[BackpackVisibilityRecord, ...],
     policy: TemporalPresentationPolicy,
 ) -> None:
     if len(records) != 320:
@@ -320,8 +361,36 @@ def _verify_semantics(
         raise ValueError("non-measured state contains raw XYZ")
     if any(record.state is TemporalPresentationState.INFERRED for record in records):
         raise ValueError("D034 contains inferred positions")
-    if any(record.state is TemporalPresentationState.OCCLUDED for record in records):
-        raise ValueError("D034 claims occlusion without upstream confirmation")
+    explicitly_occluded_frames = {
+        record.source_frame_index
+        for record in visibility_records
+        if record.confirmed_occluded_for_localization
+    }
+    measured_backpack_frames = {
+        record.source_frame_index
+        for record in records
+        if record.target is PerceptionTarget.BACKPACK
+        and record.state is TemporalPresentationState.MEASURED
+    }
+    actual_occluded_frames = {
+        record.source_frame_index
+        for record in records
+        if record.target is PerceptionTarget.BACKPACK
+        and record.state is TemporalPresentationState.OCCLUDED
+    }
+    if actual_occluded_frames != explicitly_occluded_frames - measured_backpack_frames:
+        raise ValueError("D034 occlusion states differ from explicit visibility evidence")
+    if any(
+        record.state is TemporalPresentationState.OCCLUDED
+        and (
+            record.raw_world_xyz_m is not None
+            or record.presentation_world_xyz_m is not None
+            or record.may_update_zone_membership
+            or record.may_extend_trajectory
+        )
+        for record in records
+    ):
+        raise ValueError("occluded D034 state gained coordinates or spatial authority")
     if any(
         record.state is TemporalPresentationState.STALE
         and (

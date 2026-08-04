@@ -77,12 +77,17 @@ and completion order are diagnostics only.
 
 ### Qwen worker
 
-- Receives only bounded clips created by candidate pickup/place triggers.
+- Receives only bounded clips created by candidate pickup/carry/place triggers.
 - Produces schema-bounded semantic interpretation.
 - Is lower-rate and latency-tolerant.
 - Cannot write coordinates, identities, capture timestamps, or zones.
 - On timeout or failure, returns or causes an explicit `unknown` result without
   blocking perception, depth, localization, or state processing.
+- S05 D038 fixes the recorded-MP4 plan at three unique capture-ordered jobs,
+  capacity three with throttle-and-drain, six ordered frames per job, a
+  `96`-token bound, a `45 s` timeout, and at most one sequential repair
+  attempt. Duplicate logical events are coalesced by candidate, prompt, model,
+  and policy identity.
 
 ## Identity and Message Contract
 
@@ -180,8 +185,18 @@ swap pressure, throughput, tail latency, failures, and output integrity.
   historical evidence but cannot be labelled current.
 - Missing, failed, or late depth produces missing/occluded/stale state, not a
   background-static or fabricated XYZ.
-- Qwen results annotate already established spatial facts and never revise
-  them.
+- Qwen results annotate already established deterministic phase/visibility
+  evidence and spatial facts. They never revise coordinates, track identity,
+  capture timestamps, zones, or spatial authority.
+- D039 bounds each retained Qwen inference image to `768` pixels maximum
+  dimension. Invalid or truncated responses retain raw token/tensor evidence
+  but resolve to `unknown`, even when their prose appears plausible.
+- D040 uses a hash-bound assistant JSON prefill and a `160`-token ceiling.
+  Model output supplies five semantic fields; candidate matching and the
+  no-spatial-claims boundary remain application-owned.
+- Qwen review time is distinct from event-transition time. Carry retains its
+  frame-468 onset but reviews the sustained interval around frame 567; this
+  semantic sampling change cannot move the transition or supply XYZ.
 - Raw observations, derived anchors, fused tracks, inferred state, and
   presentation smoothing remain distinguishable.
 
@@ -223,6 +238,10 @@ The orchestrator must support:
 
 - Trigger deduplication, bounded Qwen queue, timeout, retry, and `unknown`.
 - Proof that delayed/failed Qwen work cannot block geometry.
+- Treat the Qwen runner as a supervised process for hard timeout and restart;
+  an asynchronous thread timeout alone cannot preempt an active MPS call.
+- Verify source-transition and semantic-review frame identities separately so
+  a valid semantic window cannot silently rewrite event capture time.
 
 ### S06
 

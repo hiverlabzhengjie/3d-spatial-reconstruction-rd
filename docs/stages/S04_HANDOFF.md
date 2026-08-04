@@ -81,6 +81,15 @@ between measured and presentation trajectories.
   backpack coverage increases from `47/160` to `80/160`. These are temporal
   evidence gains, not absolute XYZ-accuracy measurements.
 
+### Post-close D037 clarification
+
+S04 remains closed. On 2026-08-03, S05 supplied a separate affirmative
+synchronized-video visibility overlay for the carry interval. The D034
+builder/verifier gained an optional evidence input and produced a new
+non-destructive run with 33 backpack `occluded` ticks at frames `468-660`.
+Those ticks have no XYZ or spatial authority. The original dense D034 artifact
+and every measured observation/segment remain unchanged diagnostic history.
+
 ## Changed Files
 
 - `configs/s04_action_keyframes.json` and
@@ -106,6 +115,7 @@ and caches remain excluded from Git.
 | Corrected D030-D033 | `artifacts/s04/corrected_tracking_dense_20260803/` | Surfaces, semantic anchors, pair states, and world diagnostics |
 | Final D034/D035 presentation | `artifacts/s04/temporal_presentation_dense_final_20260803_v2/` | States, segments, CSVs, updated diagnostics, verification, and density comparison |
 | Sparse presentation baseline | `artifacts/s04/temporal_presentation_20260803_v3/` | Verified eight-pair comparison baseline |
+| D037 occlusion-aware presentation | `artifacts/s04/temporal_presentation_occlusion_aware_20260803_v2/` | Explicit-evidence occlusion states with null XYZ; measured evidence unchanged |
 
 ## Verification
 

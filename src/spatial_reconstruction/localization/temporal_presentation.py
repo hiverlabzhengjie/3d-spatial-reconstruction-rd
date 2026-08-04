@@ -320,6 +320,8 @@ class TemporalPresentationRunSummary(ContractModel):
     source_camera_a_timeline_sha256: Sha256Digest
     source_camera_b_timeline_ref: str
     source_camera_b_timeline_sha256: Sha256Digest
+    source_visibility_summary_ref: str | None = None
+    source_visibility_summary_sha256: Sha256Digest | None = None
     presentation_records: tuple[TemporalPresentationRecord, ...]
     measured_trajectory_segments: tuple[MeasuredTrajectorySegment, ...]
     state_counts: dict[str, NonNegativeInt]
@@ -338,6 +340,10 @@ class TemporalPresentationRunSummary(ContractModel):
 
     @model_validator(mode="after")
     def validate_run(self) -> Self:
+        if (self.source_visibility_summary_ref is None) != (
+            self.source_visibility_summary_sha256 is None
+        ):
+            raise ValueError("visibility summary reference and hash must appear together")
         if len(self.presentation_records) != 320:
             raise ValueError("D034 run requires two targets across 160 timeline ticks")
         if any(
