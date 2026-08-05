@@ -1,0 +1,20 @@
+# S06 localhost-only RTSP compatibility fixture.
+logLevel: info
+logDestinations: [stdout]
+readTimeout: 2s
+writeTimeout: 2s
+rtsp: true
+rtspTransports: [tcp]
+rtspEncryption: "no"
+rtspAddress: 127.0.0.1:18554
+rtmp: false
+api: false
+metrics: false
+pprof: false
+playback: false
+hls: false
+webrtc: false
+srt: false
+moq: false
+paths:
+  all_others:

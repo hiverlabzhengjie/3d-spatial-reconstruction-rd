@@ -1268,3 +1268,37 @@ or granting Qwen spatial authority.
 The accepted v4 execution returned direct schema-valid pickup, carry, and
 place matches on attempt one, with no retry or normalization. Evidence strength
 remains a qualitative model description, not probability or spatial truth.
+
+## D041 - MediaMTX localhost fixture and bounded RTSP reconnect identity
+
+**Date:** 2026-08-05
+**Status:** Active
+
+Use MediaMTX `1.19.3` only as an isolated localhost RTSP/TCP test server for
+the S06 protocol-compatibility gate. FFmpeg publishes a transient 640x360 H.264
+stream derived from the accepted synchronized Camera A file, and the existing
+PyAV adapter remains the application-side reader. MediaMTX is installed as a
+Homebrew binary, is not a Python dependency or production component, and adds
+no external network, persistent service, model, or spatial method. The tracked
+fixture binds only `127.0.0.1:18554`, disables RTMP, HLS, WebRTC, SRT, MoQ,
+playback, API, metrics, and profiling, and is terminated after each smoke run.
+
+The first successful diagnostic exposed MediaMTX's enabled-by-default RTMP and
+MoQ listeners and a generated disposable certificate/key. Those files were
+removed, the unrelated protocols were disabled, and only later restricted runs
+are eligible for acceptance.
+
+Policy `s06_rtsp_bounded_reconnect_v1` makes reconnection finite and visible:
+at most eight connection attempts, a `0.25 s` delay between attempts, and an
+explicit attempt outcome/history. Frames decoded before and after reconnect
+retain one credential-safe stream-configuration fingerprint and are rebased to
+contiguous global source indices. If RTSP PTS restarts, the source offset is
+recorded. Capture time remains strictly increasing and retains at least the
+observed local wall-clock outage gap; the per-attempt source offset, capture
+offset, and observed gap are persisted rather than silently compressing the
+disconnect. Exhaustion is an explicit terminal diagnostic, not an unbounded
+retry loop.
+
+This proves only single-stream localhost open/outage/reconnect compatibility.
+It does not claim production behavior for authentication, TLS, jitter, packet
+loss, multiple cameras, long-duration service, or network security.

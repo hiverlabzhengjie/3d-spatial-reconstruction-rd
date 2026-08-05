@@ -1,9 +1,9 @@
 # Project Status
 
-**Last updated:** 2026-08-04
+**Last updated:** 2026-08-05
 **Overall phase:** Implementation
-**Current stage:** S05 - Interaction State and Qwen Events
-**Stage state:** Complete - closed and published at `6cdcd12`
+**Current stage:** S06 - Rerun Presentation and RTSP Compatibility
+**Stage state:** Complete - completion gate passed; publication pending
 
 ## Completed
 
@@ -753,6 +753,126 @@
   - verified remote `main` and the dereferenced tag both resolved exactly to
     the stage-close commit before the provenance-only documentation update.
 
+## In Progress S06
+
+- Re-verified the S06 entry prerequisites before changing the project:
+  - local `main` was clean and matched `origin/main` at `00b250b`;
+  - the accepted S02 static scene, S04 occlusion-aware presentation, S05
+    semantic interaction, Qwen v4 plan, and Qwen v4 execution passed fresh
+    independent verification;
+  - all `259` pre-S06 tests, Ruff, strict mypy, lockfile, environment, and
+    whitespace checks passed; and
+  - no new physical capture or calibration was required.
+- Completed S06 Work Package 1:
+  - added policy `s06_integrated_offline_orchestration_v1` with file sources,
+    capture time as the sole authoritative Rerun timeline, bounded queue
+    capacities, throttle-and-drain offline overload behavior, and exactly one
+    heavy-MPS permit;
+  - bound both synchronized action videos plus seven accepted S01-S05 inputs
+    by exact content hash in one stable orchestration manifest;
+  - added a subprocess supervisor with hard timeout, terminate/kill fallback,
+    bounded restart, explicit lifecycle outcomes, and degraded-state records;
+  - verified that a non-preemptible synthetic Qwen process is killed at the
+    hard boundary while an independent geometry worker still completes;
+  - independently regenerated manifest
+    `ecb59e8b7142db940f5935817fa6323c5c34735a98cb37fc3f3f73a49ffd09c0`;
+  - passed all `264` project tests, Ruff, strict mypy across `91`
+    source/script files, lockfile/environment, artifact verification, and
+    whitespace checks; and
+  - performed no model inference, Rerun assembly, RTSP test, raw-capture
+    modification, or vendor modification in this work package.
+- Refined the WP1 manifest before Rerun assembly:
+  - promoted the action-specific camera calibration and scene/zone metadata to
+    first-class hash-bound inputs rather than relying on transitive references;
+  - retained the original seven-artifact manifest as diagnostic history; and
+  - accepted the nine-artifact v2 manifest
+    `87a1c225049f167d6b5f87632d953d2d242ac7479eb20a33bfc24393f359a8f7`.
+- Completed S06 Work Package 2:
+  - assembled both complete synchronized H.264 camera videos into one Rerun
+    recording with `1,047` frame references per camera on `capture_time`;
+  - logged `328` labelled YOLO/ByteTrack boxes and `298` combined person/
+    backpack segmentation overlays at the retained five-FPS evidence times;
+  - logged the accepted static point cloud, action-camera frustums, pickup and
+    drop-off zones, `320` presentation states, and `23` disconnected exact
+    measured trajectory segments;
+  - visually distinguished measured person footpoint, lower-body, upper-body,
+    backpack, stale, missing, and occluded semantics without adding XYZ;
+  - logged all `160` orthogonal interaction records and separate pickup,
+    carry, and place transition/Qwen review events; carry remains transition
+    frame `468` and review frame `567`;
+  - installed Homebrew FFmpeg `8.1.2_1`, which Rerun requires to decode the
+    retained H.264 assets in the viewer;
+  - recorded the native viewer's unrelated `80,000 px` window-surface failure
+    and completed visual QA through the equivalent localhost Rerun web viewer;
+  - removed cluttering static trajectory labels after the first visual review
+    while preserving every disconnected colored segment; and
+  - accepted `digital_twin_stage06_v2.rrd`, `51,928,057` bytes with SHA-256
+    `0ec24e52ee4ab592bb02d9c2c30bbca5f455129466421f8b2ee2bb612f8d1fe9`;
+  - passed `266` project tests, Ruff, strict mypy across `94` source files,
+    lock/environment consistency, artifact verification, visual QA, and
+    whitespace checks.
+- Completed S06 Work Package 3:
+  - added a typed deterministic virtual-time replay bound to accepted manifest
+    `87a1c225049f167d6b5f87632d953d2d242ac7479eb20a33bfc24393f359a8f7`;
+  - exercised `34` immutable logical jobs and `35` attempts across five
+    bounded queues, with `112` explicit accept, throttle, drain, retry, pop,
+    terminal, and duplicate-coalescing events;
+  - recorded nine throttle-and-drain submissions, one duplicate coalescing,
+    zero drops, two explicit final degraded results, and one successful Qwen
+    restart without duplicate result persistence;
+  - proved identical capture-ordered output digest
+    `746c0f1175982dbd61a13514c7c4398f3de8ff65960ab39335692ea03a5ead9b`
+    under two deliberately different worker completion schedules;
+  - proved all heavy-MPS attempt intervals non-overlapping with maximum
+    occupancy one across nine intervals and geometry completion independent of
+    the Qwen retry;
+  - completed a graceful-shutdown exercise with one in-flight completion,
+    four explicit pending cancellations, zero final backlog/in-flight work,
+    and the accelerator permit released;
+  - independently regenerated the accepted v2 replay report exactly from the
+    hash-bound source manifest; and
+  - passed `269` project tests, Ruff, strict mypy across `97` source files,
+    lock/environment consistency, artifact verification, and whitespace
+    checks.
+- Completed S06 Work Package 4:
+  - adopted D041 and installed MediaMTX `1.19.3` as an isolated localhost-only
+    RTSP test fixture, with no new Python runtime or production dependency;
+  - added bounded reconnect policy `s06_rtsp_bounded_reconnect_v1`, explicit
+    per-attempt outcomes, bounded exhaustion, and credential-safe persistent
+    stream references;
+  - preserved contiguous global frame indices, unique immutable frame IDs, and
+    strictly increasing capture timestamps across reconnect, including an
+    explicit `1.747282 s` observed outage gap rather than silent compression;
+  - restricted the accepted fixture to RTSP/TCP on `127.0.0.1:18554` and
+    disabled every unrelated MediaMTX protocol/service listener;
+  - decoded `45` 640x360 frames: `27` before the deliberate FFmpeg publisher
+    outage and `18` after recovery, across four of the allowed eight connection
+    attempts (`stream_ended`, two failed opens, then `target_reached`);
+  - validated the final RTSP identity directly as a standard perception-worker
+    job without model inference;
+  - independently verified the accepted `rtsp_smoke_v4_20260805` hashes,
+    process logs, source-manifest binding, reconnect history, identities,
+    timestamps, and worker compatibility; and
+  - passed `272` project tests, Ruff, strict mypy across `100` source files,
+    lock/environment consistency, artifact verification, and whitespace
+    checks.
+- Completed S06 Work Package 5 and the stage completion audit:
+  - added dedicated typed JSONL exports for all `320` accepted presentation
+    records, all `23` exact measured trajectory segments, and the three
+    pickup-carry-place events;
+  - preserved the carry transition at frame `468` separately from Qwen review
+    frame `567`, with phase/spatial authority and Qwen provenance explicit;
+  - independently regenerated every export from the hash-bound S04/S05/Qwen
+    sources with zero non-measured raw XYZ, unavailable-state presentation
+    XYZ, interpolated/stale segments, or Qwen spatial writes;
+  - reran all five accepted S06 verifiers into
+    `artifacts/s06/stage_close_audit_20260805/`;
+  - passed all seven roadmap completion criteria in one reproducible gate
+    audit without weakening a criterion; and
+  - passed `273` project tests, Ruff, strict mypy across `104` source/script
+    files, lock/environment consistency, artifact verification, and
+    whitespace checks.
+
 ## Current Blockers and Unknowns
 
 - No S00 completion-gate blocker remains.
@@ -846,6 +966,12 @@
 - No S05 completion-gate blocker remains. Detector unreliability, the
   unlocalized carry interval, qualitative Qwen evidence, and hard process
   supervision assigned to S06 remain explicit accepted limitations.
+- No S06 completion-gate blocker remains. Work Packages 1-5 establish the
+  hash-bound orchestration, hard worker-supervision boundary, integrated
+  file-backed Rerun presentation, deterministic bounded-queue replay,
+  serialized-MPS policy, explicit degraded/shutdown evidence, local RTSP/TCP
+  reconnect compatibility, and dedicated track/trajectory/event exports. The
+  fresh stage audit passed all seven criteria without weakening them.
 
 ## Available Software Inputs
 
@@ -873,5 +999,6 @@
 
 ## Exact Next Action
 
-Stop. Begin S06 only when explicitly requested, starting with the integrated
-Rerun/file orchestration contract and supervisor-level Qwen worker lifecycle.
+Create and publish the S06 stage-close commit and annotated tag, record their
+verified remote provenance in the handoff, then stop. Do not begin S07 without
+an explicit request.
