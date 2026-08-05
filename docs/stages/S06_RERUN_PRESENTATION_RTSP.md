@@ -3,8 +3,8 @@
 ## Status
 
 Complete with known prototype limitations. Work Packages 1-5 and all seven
-completion-gate criteria passed on 2026-08-05. Stage-close publication is
-pending.
+completion-gate criteria passed on 2026-08-05. Stage-close commit and tag are
+published and remotely verified.
 
 ## Entry Prerequisites
 
@@ -596,6 +596,5 @@ No completion criterion was skipped or weakened. The gate auditor records
 
 ## Exact Next Action
 
-Create and publish the S06 stage-close commit and annotated tag, record their
-verified remote provenance in `docs/stages/S06_HANDOFF.md`, then stop. Do not
-begin S07 without an explicit request.
+Stop. Begin S07 only when explicitly requested, starting by confirming whether
+the accepted `action_take_01` will be the final demonstration recording.

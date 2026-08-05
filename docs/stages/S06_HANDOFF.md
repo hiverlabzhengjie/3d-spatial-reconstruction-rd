@@ -222,9 +222,16 @@ was introduced.
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: `<pending stage-close publication>`
+- Stage-close commit: `1ae09564934d322cf67e7b42e499431960c9b277`
+- Stage-close URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/1ae09564934d322cf67e7b42e499431960c9b277`
 - Annotated tag: `stage-06-rerun-rtsp`
-- Remote push verified: No; pending stage-close publication.
+- Tag URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/tree/stage-06-rerun-rtsp`
+- Remote push verified: Yes. On 2026-08-05, remote `main` resolved to the
+  stage-close commit and the annotated tag dereferenced exactly to it. A
+  subsequent provenance-only documentation commit records these values; the
+  stage-close tag remains fixed at the verified implementation commit.
 - Model/vendor revisions remain those closed in S05: Qwen
   `89644892e4d85e24eaac8bacfd4f463576704203`, YOLO checkpoint SHA-256
   `a7cd8f929e1903d78a12a48efecab430209f18dc46cb96c3599a5980c63c423c`,
@@ -232,6 +239,5 @@ was introduced.
 
 ## Exact Next Action
 
-Create and push the S06 stage-close commit and annotated tag, verify both
-remote references, record their provenance here, then stop. Do not begin S07
-without an explicit request.
+Stop. Begin S07 only when explicitly requested, starting by confirming whether
+the accepted `action_take_01` will be the final demonstration recording.

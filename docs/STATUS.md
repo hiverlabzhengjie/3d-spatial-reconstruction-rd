@@ -3,7 +3,7 @@
 **Last updated:** 2026-08-05
 **Overall phase:** Implementation
 **Current stage:** S06 - Rerun Presentation and RTSP Compatibility
-**Stage state:** Complete - completion gate passed; publication pending
+**Stage state:** Complete - closed and published
 
 ## Completed
 
@@ -999,6 +999,5 @@
 
 ## Exact Next Action
 
-Create and publish the S06 stage-close commit and annotated tag, record their
-verified remote provenance in the handoff, then stop. Do not begin S07 without
-an explicit request.
+Stop. Begin S07 only when explicitly requested, starting by confirming whether
+the accepted `action_take_01` will be the final demonstration recording.
