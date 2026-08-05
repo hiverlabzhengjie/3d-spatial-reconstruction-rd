@@ -8,7 +8,7 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +18,8 @@ from spatial_reconstruction.orchestration import (
     ArtifactRole,
     Stage06OrchestrationManifest,
     build_event_markers,
+    coordinate_log_text,
+    coordinate_point_label,
     point_style,
 )
 
@@ -41,6 +43,7 @@ def parse_args() -> argparse.Namespace:
         default=Path("artifacts/s06/orchestration_contract_v2_20260805/summary.json"),
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--presentation-video-manifest", type=Path)
     return parser.parse_args()
 
 
@@ -65,6 +68,19 @@ def main() -> int:
         if _sha256(PROJECT_ROOT / video.source_ref) != video.source_sha256:
             raise ValueError(f"source video hash differs: {video.source_ref}")
 
+    presentation_videos = manifest.source_videos
+    presentation_video_manifest_path: Path | None = None
+    presentation_video_manifest: dict[str, Any] | None = None
+    if args.presentation_video_manifest is not None:
+        presentation_video_manifest_path = (
+            PROJECT_ROOT / args.presentation_video_manifest
+        ).resolve()
+        presentation_video_manifest = _load_json(presentation_video_manifest_path)
+        presentation_videos = _load_presentation_video_proxies(
+            presentation_video_manifest,
+            manifest,
+        )
+
     static_summary = _artifact_json(artifacts, ArtifactRole.STATIC_SCENE)
     calibration = _artifact_json(artifacts, ArtifactRole.ACTION_CALIBRATION)
     scene_metadata = _artifact_json(artifacts, ArtifactRole.SCENE_METADATA)
@@ -78,7 +94,11 @@ def main() -> int:
     event_markers = build_event_markers(qwen_plan["jobs"], qwen_results)
 
     rr.init(
-        "spatial_reconstruction_s06",
+        (
+            "spatial_reconstruction_s07_refined"
+            if presentation_video_manifest is not None
+            else "spatial_reconstruction_s06"
+        ),
         recording_id=f"{manifest.capture_session_id}_{manifest.manifest_id[:12]}",
         spawn=False,
         strict=True,
@@ -93,11 +113,20 @@ def main() -> int:
         ),
         static=True,
     )
+    if presentation_video_manifest is not None:
+        rr.log(
+            "provenance/presentation_video_proxies",
+            rr.TextDocument(
+                json.dumps(presentation_video_manifest, indent=2),
+                media_type="text/markdown",
+            ),
+            static=True,
+        )
 
     logged_points = _log_static_world(static_summary, calibration, scene_metadata)
-    video_frame_counts = _log_videos(manifest)
+    video_frame_counts = _log_videos(presentation_videos)
     box_count, mask_frame_count = _log_perception(perception_summary)
-    state_counts = _log_temporal_presentation(temporal_summary)
+    state_counts, measured_observation_counts = _log_temporal_presentation(temporal_summary)
     segment_counts = _log_trajectories(temporal_summary)
     _log_interaction(interaction_summary)
     _log_events(event_markers)
@@ -107,7 +136,7 @@ def main() -> int:
     summary_path = output_path.with_name(f"{output_path.stem}_export_summary.json")
     summary = {
         "schema_version": 1,
-        "stage": "S06",
+        "stage": "S07" if presentation_video_manifest is not None else "S06",
         "status": "passed",
         "purpose": "integrated_file_backed_rerun_export",
         "rerun_sdk_version": rr.__version__,
@@ -120,11 +149,36 @@ def main() -> int:
         "recording_bytes": output_path.stat().st_size,
         "logged_static_point_count": logged_points,
         "video_frame_reference_counts": video_frame_counts,
+        "presentation_video_mode": (
+            "seekable_h264_proxy"
+            if presentation_video_manifest is not None
+            else "accepted_synchronized_source"
+        ),
+        "presentation_video_manifest_ref": (
+            None
+            if presentation_video_manifest_path is None
+            else _relative(presentation_video_manifest_path)
+        ),
+        "presentation_video_manifest_sha256": (
+            None
+            if presentation_video_manifest_path is None
+            else _sha256(presentation_video_manifest_path)
+        ),
+        "presentation_video_refs": {
+            video.camera_id: video.source_ref for video in presentation_videos
+        },
+        "presentation_video_sha256": {
+            video.camera_id: video.source_sha256 for video in presentation_videos
+        },
         "perception_box_count": box_count,
         "segmentation_frame_count": mask_frame_count,
         "presentation_record_count": len(temporal_summary["presentation_records"]),
         "presentation_state_counts": state_counts,
+        "measured_observation_counts": measured_observation_counts,
         "measured_segment_counts": segment_counts,
+        "trajectory_logging_mode": "capture_time_progressive",
+        "full_trajectory_visible_at_start": False,
+        "coordinate_log_record_count": len(temporal_summary["presentation_records"]),
         "interaction_record_count": len(interaction_summary["records"]),
         "event_markers": [marker.model_dump(mode="json") for marker in event_markers],
         "source_transition_times_preserved": True,
@@ -219,9 +273,9 @@ def _log_static_world(
     return int(len(points))
 
 
-def _log_videos(manifest: Stage06OrchestrationManifest) -> dict[str, int]:
+def _log_videos(videos: tuple[Any, Any]) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for video in manifest.source_videos:
+    for video in videos:
         path = f"cameras/{video.camera_id}/video"
         asset = rr.AssetVideo(path=PROJECT_ROOT / video.source_ref)
         rr.log(path, asset, static=True)
@@ -305,8 +359,11 @@ def _log_perception(perception_summary: dict[str, Any]) -> tuple[int, int]:
     return box_count, segmentation_frame_count
 
 
-def _log_temporal_presentation(temporal: dict[str, Any]) -> dict[str, int]:
+def _log_temporal_presentation(
+    temporal: dict[str, Any],
+) -> tuple[dict[str, int], dict[str, int]]:
     counts: dict[str, int] = defaultdict(int)
+    measured_counts: dict[str, int] = defaultdict(int)
     records = sorted(
         temporal["presentation_records"],
         key=lambda item: (item["capture_timestamp_seconds"], TARGETS.index(item["target"])),
@@ -322,22 +379,36 @@ def _log_temporal_presentation(temporal: dict[str, Any]) -> dict[str, int]:
             anchor_kind=record["anchor_kind"],
         )
         point_path = f"world/dynamic/{target}/current"
+        rr.log(f"coordinates/{target}", rr.TextLog(coordinate_log_text(record)))
         if style.show_position:
             xyz = record["presentation_world_xyz_m"]
             if xyz is None:
                 raise ValueError("visible presentation state lacks presentation XYZ")
-            age = record["measurement_age_seconds"]
-            age_text = "" if age is None else f" age={float(age):.1f}s"
             rr.log(
                 point_path,
                 rr.Points3D(
                     [xyz],
                     colors=[style.color],
                     radii=style.radius_m,
-                    labels=[f"{style.label_prefix}{age_text}"],
+                    labels=[coordinate_point_label(record, prefix=style.label_prefix)],
                     show_labels=True,
                 ),
             )
+            if state == "measured":
+                measured_counts[target] += 1
+                for axis, value in zip(("x", "y", "z"), xyz, strict=True):
+                    rr.log(f"coordinates/{target}/{axis}_m", rr.Scalar(float(value)))
+                rr.log(
+                    (
+                        f"world/measurements/{target}/{record['anchor_kind']}/"
+                        f"{record['record_id'][:12]}"
+                    ),
+                    rr.Points3D(
+                        [xyz],
+                        colors=[style.color],
+                        radii=max(float(style.radius_m) * 0.55, 0.025),
+                    ),
+                )
         else:
             if (
                 record["raw_world_xyz_m"] is not None
@@ -352,7 +423,7 @@ def _log_temporal_presentation(temporal: dict[str, Any]) -> dict[str, int]:
             f"timeline/localization/{target}/log",
             rr.TextLog(f"{state}: {record['reason']} ({record['visual_style_id']})"),
         )
-    return dict(counts)
+    return dict(counts), dict(measured_counts)
 
 
 def _log_trajectories(temporal: dict[str, Any]) -> dict[str, int]:
@@ -366,6 +437,7 @@ def _log_trajectories(temporal: dict[str, Any]) -> dict[str, int]:
     for segment in temporal["measured_trajectory_segments"]:
         anchor = str(segment["anchor_kind"])
         target = str(segment["target"])
+        rr.set_time_seconds("capture_time", float(segment["end_timestamp_seconds"]))
         rr.log(
             f"world/trajectories/{target}/{anchor}/{segment['segment_id'][:12]}",
             rr.LineStrips3D(
@@ -373,7 +445,6 @@ def _log_trajectories(temporal: dict[str, Any]) -> dict[str, int]:
                 colors=[colors[anchor]],
                 radii=0.018,
             ),
-            static=True,
         )
         counts[target] += 1
     return dict(counts)
@@ -438,6 +509,7 @@ def _send_blueprint() -> None:
             rrb.Spatial2DView(origin="cameras/camera_b/video", name="Camera B"),
             rrb.Spatial3DView(origin="world", name="Metric Digital Twin", background=[18, 18, 18]),
             rrb.TimeSeriesView(origin="timeline", name="State and interaction timeline"),
+            rrb.TextLogView(origin="coordinates", name="3D coordinates and provenance"),
             rrb.TextLogView(origin="events", name="Pickup, carry, place events"),
             auto_layout=True,
             collapse_panels=True,
@@ -447,6 +519,40 @@ def _send_blueprint() -> None:
 
 def _artifact_json(artifacts: dict[ArtifactRole, Any], role: ArtifactRole) -> dict[str, Any]:
     return _load_json(PROJECT_ROOT / artifacts[role].source_ref)
+
+
+def _load_presentation_video_proxies(
+    proxy_manifest: dict[str, Any],
+    manifest: Stage06OrchestrationManifest,
+) -> tuple[Any, Any]:
+    if proxy_manifest.get("policy_id") != "s07_rerun_seekable_h264_v1":
+        raise ValueError("unsupported presentation-video proxy policy")
+    source_by_camera = {video.camera_id: video for video in manifest.source_videos}
+    proxies = []
+    for record in proxy_manifest["videos"]:
+        camera_id = cast(Literal["camera_a", "camera_b"], str(record["camera_id"]))
+        source = source_by_camera[camera_id]
+        if (
+            record["source_ref"] != source.source_ref
+            or record["source_sha256"] != source.source_sha256
+        ):
+            raise ValueError(f"proxy source identity differs: {camera_id}")
+        proxy = source.model_copy(
+            update={
+                "source_ref": record["proxy_ref"],
+                "source_sha256": record["proxy_sha256"],
+                "decoded_frame_count": record["decoded_frame_count"],
+                "duration_seconds": record["duration_seconds"],
+                "nominal_frame_rate_fps": record["frame_rate_fps"],
+            }
+        )
+        if _sha256(PROJECT_ROOT / proxy.source_ref) != proxy.source_sha256:
+            raise ValueError(f"presentation-video proxy hash differs: {camera_id}")
+        proxies.append(proxy)
+    typed = tuple(proxies)
+    if tuple(video.camera_id for video in typed) != CAMERA_IDS:
+        raise ValueError("presentation-video proxies require Camera A then Camera B")
+    return cast(tuple[Any, Any], typed)
 
 
 def _read_mask(mask_ref: str) -> NDArray[np.bool_]:

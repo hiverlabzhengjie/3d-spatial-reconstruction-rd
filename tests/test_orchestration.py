@@ -22,6 +22,8 @@ from spatial_reconstruction.orchestration import (
     Stage06OrchestrationManifest,
     WorkerKind,
     build_event_markers,
+    coordinate_log_text,
+    coordinate_point_label,
     point_style,
     run_integrated_replay,
     run_supervised_worker,
@@ -170,6 +172,37 @@ def test_rerun_styles_keep_measured_stale_occluded_and_anchor_kinds_distinct() -
     assert stale.label_prefix == "stale display-only"
     assert occluded.show_position is False
     assert occluded.radius_m == 0.0
+
+
+def test_coordinate_presentation_exposes_measured_xyz_without_fabricating_missing() -> None:
+    measured = {
+        "target": "person",
+        "state": "measured",
+        "capture_timestamp_seconds": 7.803333,
+        "source_frame_index": 234,
+        "raw_world_xyz_m": [0.56627, 3.40477, 0.0],
+        "presentation_world_xyz_m": [0.56627, 3.40477, 0.0],
+        "anchor_kind": "person_footpoint",
+        "source_measurement_camera_ids": ["camera_a"],
+        "measurement_age_seconds": 0.0,
+    }
+    log = coordinate_log_text(measured)
+    label = coordinate_point_label(measured, prefix="measured person footpoint")
+
+    assert "t=7.803s" in log
+    assert "XYZ=(0.566, 3.405, 0.000)m" in log
+    assert "anchor=person_footpoint" in log
+    assert "cameras=camera_a" in log
+    assert "XYZ=(0.566, 3.405, 0.000)m" in label
+
+    missing = measured | {
+        "state": "missing",
+        "raw_world_xyz_m": None,
+        "presentation_world_xyz_m": None,
+    }
+    assert coordinate_log_text(missing).endswith("XYZ=unavailable")
+    with pytest.raises(ValueError, match="requires presentation XYZ"):
+        coordinate_point_label(missing, prefix="missing")
 
 
 def test_qwen_review_time_cannot_move_the_carry_transition() -> None:

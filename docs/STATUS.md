@@ -1,9 +1,9 @@
 # Project Status
 
 **Last updated:** 2026-08-05
-**Overall phase:** Implementation
-**Current stage:** S06 - Rerun Presentation and RTSP Compatibility
-**Stage state:** Complete - closed and published
+**Overall phase:** Complete
+**Current stage:** S07 - Final Capture, Refinement, and Reporting
+**Stage state:** Complete with known limitations
 
 ## Completed
 
@@ -753,7 +753,7 @@
   - verified remote `main` and the dereferenced tag both resolved exactly to
     the stage-close commit before the provenance-only documentation update.
 
-## In Progress S06
+## Completed S06
 
 - Re-verified the S06 entry prerequisites before changing the project:
   - local `main` was clean and matched `origin/main` at `00b250b`;
@@ -873,6 +873,81 @@
     files, lock/environment consistency, artifact verification, and
     whitespace checks.
 
+## Completed S07
+
+- The user selected the accepted `action_take_01` as the final demonstration
+  recording; D042 records that no recapture or recalibration is required for
+  this retained pair.
+- Re-verified the S07 entry prerequisites before implementation:
+  - local `main` was clean and matched `origin/main` at `6e4bef0`;
+  - all five S06 verification layers passed fresh independent checks;
+  - the unified seven-criterion S06 gate passed without weakening; and
+  - the accepted Rerun retained SHA-256
+    `0ec24e52ee4ab592bb02d9c2c30bbca5f455129466421f8b2ee2bb612f8d1fe9`.
+- Completed S07 Work Package 1:
+  - added typed final-recording selection, final-artifact, and reproducible-run
+    policy contracts;
+  - bound both 1,047-frame synchronized `action_take_01` videos and seven
+    accepted S06 evidence layers by exact content hash;
+  - accepted final-run manifest
+    `9bb49beb13262f8108f4b37dd0974de6cc23f7fa456214e0c14e6c540a31ba08`;
+  - independently verified the recording selection, source hashes, S06 gate,
+    Rerun hash, and all missing-data/non-spatial policy boundaries;
+  - performed no model inference, Rerun regeneration, demo-video generation,
+    recapture, recalibration, or upstream-artifact modification; and
+  - passed all 276 project tests, Ruff, strict mypy across 108 source/script
+    files, lockfile/environment, artifact verification, and whitespace checks.
+- Completed S07 Work Package 2:
+  - added typed measured-step and final-assembly contracts with exact execution
+    ordering and recomputed timing/throughput validation;
+  - diagnosed the original camera MP4s' five-keyframe, 250-frame maximum-gap
+    structure as the interactive seek/black-frame problem and added
+    hash-bound, presentation-only H.264 proxies with 35 keyframes and a
+    30-frame maximum gap, without modifying the synchronized source videos;
+  - regenerated the preferred refined
+    `artifacts/s07/final_run_v2_20260805/digital_twin_stage07_final.rrd`
+    without model inference, size `44,022,273` bytes and SHA-256
+    `bcf84af987069151339427d57d7642cffd0e92b6c0ff05bbdbddb7c6143b64ca`;
+  - added timestamped XYZ/frame/camera/anchor provenance for every presentation
+    record and capture-time-progressive measured dots and same-anchor segments;
+  - preserved missing/occluded null XYZ, display-only stale values,
+    disconnected gaps, and distinct person anchor semantics; no smoothing,
+    interpolation, cross-anchor joining, or fabricated coordinates were added;
+  - measured `1.298 s` for S07 entry verification and `2.461 s` for Rerun
+    export, totalling `3.759 s` for the refined retained-output assembly;
+  - recorded an assembly-only factor of `0.1076x` capture duration, or `9.291`
+    seconds of recorded content assembled per wall-clock second, explicitly
+    not a live or fresh-model throughput claim;
+  - independently parsed all 20 required Rerun entity paths and verified all
+    stable S06 semantic counts, event identities, capture-time authority, and
+    missing/stale trajectory boundaries;
+  - browser-tested Camera A and Camera B at early, middle, and late seek points
+    without an observed blackout, and verified no trails at capture start,
+    partial trails mid-run, full disconnected trails at the end, and explicit
+    coordinate/provenance presentation;
+  - retained the initial 51.9 MB assembly as immutable historical evidence and
+    designated the refined v2 recording as the preferred interactive file; and
+  - passed all 279 project tests, Ruff, strict mypy across 113 source/script
+    files, lockfile/environment, artifact verification, and whitespace checks.
+- Completed S07 Work Package 3 and the stage completion audit:
+  - recorded D044 after the user accepted the refined interactive Rerun as the
+    final demonstration instead of a separate rendered MP4;
+  - added a durable capture/calibration guide, exact final-demonstration
+    reproduction guide, and concise technical report;
+  - consolidated DA3, YOLO, Qwen, queue/replay, RTSP, and assembly measurements
+    while explicitly separating isolated/offline evidence from projected live
+    capacity;
+  - documented detector fragmentation, mixed person anchors, the rejected
+    disagreement, the 6.803-second null-XYZ carry gap, Qwen failures, dynamic
+    ground-truth absence, and RTSP/production limits;
+  - reran the entry, seekable-proxy, and refined-Rerun verifiers into
+    `artifacts/s07/stage_close_audit_20260805/`;
+  - passed all five S07 ROADMAP completion criteria without weakening any
+    criterion and created `docs/stages/S07_HANDOFF.md`; and
+  - passed all 279 project tests, Ruff, strict mypy across 114 source/script
+    files, lock/environment consistency, artifact verification, and whitespace
+    checks.
+
 ## Current Blockers and Unknowns
 
 - No S00 completion-gate blocker remains.
@@ -972,6 +1047,12 @@
   serialized-MPS policy, explicit degraded/shutdown evidence, local RTSP/TCP
   reconnect compatibility, and dedicated track/trajectory/event exports. The
   fresh stage audit passed all seven criteria without weakening them.
+- No S07 completion-gate blocker remains. Work Packages 1-3 provide the
+  hash-bound final run, refined and verified interactive demonstration,
+  measured retained-output assembly, capture/calibration and reproduction
+  guides, technical report, and five-criterion close audit. Under D044 the
+  user accepted the interactive Rerun as the final demonstration; no separate
+  rendered MP4 is claimed. The approved S00-S07 roadmap is complete.
 
 ## Available Software Inputs
 
@@ -990,7 +1071,7 @@
 - ChArUco board: printed, dimension-checked, mounted, and ready
 - Printed floor markers: printed, positioned, and visible in world-pose capture
 - Tape measurements: marker centres recorded with stated `+/-0.05 m` accuracy
-- Target backpack: planned
+- Target backpack: confirmed and used in the accepted action recording
 - Empty-room recording: captured, synchronized, and restricted to a stable
   `22.0-38.0 s` candidate interval
 - Pickup-carry-place recording: preferred take synchronized and accepted;
@@ -999,5 +1080,5 @@
 
 ## Exact Next Action
 
-Stop. Begin S07 only when explicitly requested, starting by confirming whether
-the accepted `action_take_01` will be the final demonstration recording.
+Stop. The approved S00-S07 roadmap is complete. Begin follow-on work only from
+a new user-approved objective and scope.

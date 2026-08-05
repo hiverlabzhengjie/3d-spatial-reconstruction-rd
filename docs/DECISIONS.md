@@ -1302,3 +1302,79 @@ retry loop.
 This proves only single-stream localhost open/outage/reconnect compatibility.
 It does not claim production behavior for authentication, TLS, jitter, packet
 loss, multiple cameras, long-duration service, or network security.
+
+## D042 - Retain action_take_01 as the final demonstration recording
+
+**Date:** 2026-08-05
+**Status:** Active
+
+Use the already accepted `action_take_01` synchronized pair as the S07 final
+demonstration recording. The user explicitly confirmed this selection after
+the S06 completion gate passed. The pair contains the complete pickup,
+carry, and placement sequence; preserves the accepted start/end clap drift
+correction; and is already bound to the action-specific camera pose and all
+S02-S06 derived evidence.
+
+No S07 recapture or recalibration is required for this retained recording.
+This does not authorize reuse of its calibration for a newly captured video:
+any physical camera or selected-lens movement still invalidates calibration
+for that new capture under the existing physical-world rules and D023.
+
+The S07 final-run contract must bind both synchronized videos and accepted S06
+outputs by exact hash. Final assembly may reuse verified model outputs and
+must preserve capture-time authority, null XYZ during unavailable states,
+disconnected measured trajectories, and Qwen's non-spatial boundary. Reusing
+the retained evidence avoids unnecessary model inference; it does not convert
+offline or virtual-time results into demonstrated live-production capacity.
+
+## D043 - Seekable Rerun video proxies and progressive measured trails
+
+**Date:** 2026-08-05
+**Status:** Active
+
+Use presentation-only H.264 proxies for the two embedded Rerun camera streams.
+The accepted synchronized MP4s contain only five keyframes each, with a maximum
+gap of 250 frames, and visibly black out during interactive seeking. The proxy
+policy fixes 30 FPS, H.264/yuv420p, one keyframe every 30 frames, scene-cut
+keyframes disabled, and audio removed. Every proxy remains hash-bound to its
+unchanged 1,047-frame source. It may improve interactive decoding only; it may
+not replace source identity, capture timestamps, calibration, coordinates, or
+any accepted spatial output.
+
+Log the person and backpack measured observations at their authoritative
+capture times, and log each accepted same-anchor measured trajectory segment
+when its ending observation becomes available. Thus the visible trails grow
+with playback and are not present in full at the start. Add timestamped XYZ,
+frame, camera provenance, localization state, and anchor semantics to the
+presentation. Stale XYZ remains explicitly display-only, and missing or
+occluded states expose no XYZ.
+
+Do not smooth or interpolate the trails for presentation. The person evidence
+mixes footpoint, lower-body-surface, and upper-body-surface anchors, and the
+project has no surveyed dynamic ground truth. Joining anchor kinds or filling
+gaps would falsely imply accuracy and continuous observation. The progressive
+view therefore preserves D034's raw/stale boundary and D042's disconnected
+measured trajectories while making the accepted evidence easier to inspect.
+
+## D044 - The refined interactive Rerun is the final demonstration artifact
+
+**Date:** 2026-08-05
+**Status:** Active
+
+Accept the verified refined interactive Rerun recording as the S07 final
+demonstration instead of producing a separate short rendered video. The user
+reviewed the refined interaction design and explicitly judged it sufficient as
+the final demonstration before requesting Stage 07 closure.
+
+This substitution removes only the redundant rendered-video deliverable. It
+does not weaken the S07 completion gate: the accepted Rerun must still show
+both synchronized cameras, the calibrated metric scene, progressive person
+and backpack measurements, explicit localization state, and the complete
+pickup-carry-place event sequence; remain independently reproducible and
+visually verified; and preserve all missing-data, provenance, and non-spatial
+Qwen boundaries.
+
+The interactive `.rrd` is the authoritative final presentation artifact. Its
+seekable H.264 proxies are presentation-only under D043, and the original
+synchronized `action_take_01` files remain the authoritative source inputs.
+No standalone demonstration MP4 is claimed or listed as generated output.

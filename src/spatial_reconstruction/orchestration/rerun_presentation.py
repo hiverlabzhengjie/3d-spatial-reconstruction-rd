@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Literal
 
 from pydantic import model_validator
@@ -99,6 +100,53 @@ def point_style(
         color=color,
         radius_m=0.065,
         label_prefix=label,
+    )
+
+
+def coordinate_log_text(record: Mapping[str, Any]) -> str:
+    """Format timestamped localization evidence without upgrading spatial authority."""
+
+    target = str(record["target"])
+    state = str(record["state"])
+    timestamp = float(record["capture_timestamp_seconds"])
+    frame = int(record["source_frame_index"])
+    if state == "measured":
+        xyz = record["raw_world_xyz_m"]
+        if xyz is None:
+            raise ValueError("measured coordinate log requires raw XYZ")
+        cameras = "+".join(str(value) for value in record["source_measurement_camera_ids"])
+        return (
+            f"{target} MEASURED t={timestamp:.3f}s frame={frame} "
+            f"XYZ=({float(xyz[0]):.3f}, {float(xyz[1]):.3f}, "
+            f"{float(xyz[2]):.3f})m anchor={record['anchor_kind']} "
+            f"cameras={cameras}"
+        )
+    if state == "stale":
+        xyz = record["presentation_world_xyz_m"]
+        if xyz is None:
+            raise ValueError("stale coordinate log requires presentation XYZ")
+        return (
+            f"{target} STALE DISPLAY-ONLY t={timestamp:.3f}s frame={frame} "
+            f"last_XYZ=({float(xyz[0]):.3f}, {float(xyz[1]):.3f}, "
+            f"{float(xyz[2]):.3f})m age={float(record['measurement_age_seconds']):.3f}s"
+        )
+    if state not in {"missing", "occluded"}:
+        raise ValueError(f"unsupported coordinate log state: {state}")
+    if record["raw_world_xyz_m"] is not None or record["presentation_world_xyz_m"] is not None:
+        raise ValueError("unavailable coordinate log state must not contain XYZ")
+    return f"{target} {state.upper()} t={timestamp:.3f}s frame={frame} XYZ=unavailable"
+
+
+def coordinate_point_label(record: Mapping[str, Any], *, prefix: str) -> str:
+    """Label a visible 3D point with timestamp and explicit coordinate provenance."""
+
+    xyz = record["presentation_world_xyz_m"]
+    if xyz is None:
+        raise ValueError("visible coordinate label requires presentation XYZ")
+    timestamp = float(record["capture_timestamp_seconds"])
+    return (
+        f"{prefix} t={timestamp:.3f}s "
+        f"XYZ=({float(xyz[0]):.3f}, {float(xyz[1]):.3f}, {float(xyz[2]):.3f})m"
     )
 
 

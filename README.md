@@ -10,6 +10,20 @@ https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd
 The canonical project scope and current stage are documented in
 `docs/PROJECT_BRIEF.md`, `docs/ROADMAP.md`, and `docs/STATUS.md`.
 
+## Final outcome
+
+The approved S00-S07 roadmap is complete. The final local demonstration is a
+hash-bound interactive Rerun recording with synchronized camera views, metric
+scene context, progressive person/backpack measurements, localization state,
+and pickup-carry-place events.
+
+- Capture and calibration procedure: `docs/CAPTURE_CALIBRATION_GUIDE.md`
+- Exact final-demonstration reproduction:
+  `docs/REPRODUCING_FINAL_DEMONSTRATION.md`
+- Findings, limitations, performance, and production boundaries:
+  `docs/FINAL_TECHNICAL_REPORT.md`
+- Final stage handoff: `docs/stages/S07_HANDOFF.md`
+
 ## Local development
 
 This project uses native macOS Python 3.11 so PyTorch can access Apple MPS.

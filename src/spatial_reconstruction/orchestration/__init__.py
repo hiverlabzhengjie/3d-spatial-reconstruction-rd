@@ -27,6 +27,8 @@ from spatial_reconstruction.orchestration.rerun_presentation import (
     RerunEventMarker,
     RerunPointStyle,
     build_event_markers,
+    coordinate_log_text,
+    coordinate_point_label,
     point_style,
 )
 from spatial_reconstruction.orchestration.supervisor import (
@@ -62,6 +64,8 @@ __all__ = [
     "SupervisedWorkerRun",
     "WorkerKind",
     "build_event_markers",
+    "coordinate_log_text",
+    "coordinate_point_label",
     "point_style",
     "run_integrated_replay",
     "run_supervised_worker",
