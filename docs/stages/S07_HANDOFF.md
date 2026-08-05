@@ -204,11 +204,17 @@ p95/p99 behavior.
 
 - GitHub repository:
   `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd`
-- Stage-close commit: pending until this gate-passed handoff is committed
-- Stage-close URL: pending
-- Annotated tag: `stage-07-final-demonstration` (pending)
-- Tag URL: pending
-- Remote push verified: pending
+- Stage-close commit:
+  `dfb08de49de14701f4e8c9e21ba8813aad4b8db8`
+- Stage-close URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/commit/dfb08de49de14701f4e8c9e21ba8813aad4b8db8`
+- Annotated tag: `stage-07-final-demonstration`
+- Tag URL:
+  `https://github.com/hiverlabzhengjie/3d-spatial-reconstruction-rd/tree/stage-07-final-demonstration`
+- Remote push verified: Yes. On 2026-08-05, remote `main` resolved to the
+  stage-close commit and the annotated tag dereferenced exactly to it. This
+  later provenance-only documentation update records those values; the tag
+  remains fixed at the verified close commit.
 - Model revisions remain unchanged: DA3
   `b2359bdf726fb44ef62acca04d629dcf158053e7`, Qwen
   `89644892e4d85e24eaac8bacfd4f463576704203`, and YOLO checkpoint SHA-256

@@ -947,6 +947,13 @@
   - passed all 279 project tests, Ruff, strict mypy across 114 source/script
     files, lock/environment consistency, artifact verification, and whitespace
     checks.
+- Published the S07 stage close:
+  - created commit `dfb08de49de14701f4e8c9e21ba8813aad4b8db8` with message
+    `stage(S07): complete final demonstration and reporting`;
+  - created annotated tag `stage-07-final-demonstration`;
+  - pushed the commit to public `origin/main` and pushed the tag; and
+  - verified remote `main` and the dereferenced tag both resolved exactly to
+    the stage-close commit before this provenance-only documentation update.
 
 ## Current Blockers and Unknowns
 
